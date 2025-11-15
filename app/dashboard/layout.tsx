@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Bot, LogOut, Settings, Database, MessageSquare, Users, Key, Sparkles } from 'lucide-react'
+import { Bot, LogOut, Settings, Database, MessageSquare, Users, Key, Sparkles, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { ErrorBoundary } from '@/components/error-boundary'
@@ -57,6 +57,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { href: '/dashboard', label: 'My Bots', icon: Bot },
+    { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/dashboard/templates', label: 'Templates', icon: Sparkles },
     { href: '/dashboard/admin/conversations', label: 'All Conversations', icon: MessageSquare },
     { href: '/dashboard/team', label: 'Team', icon: Users },
