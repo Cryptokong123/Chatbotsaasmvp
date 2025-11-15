@@ -9,6 +9,8 @@ import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { CommandPalette } from '@/components/command-palette'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { KeyboardShortcutsHelp, useKeyboardShortcut } from '@/components/keyboard-shortcuts'
+import { useTheme } from 'next-themes'
 
 export default function DashboardLayout({
   children,
@@ -20,6 +22,17 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const supabase = createBrowserSupabaseClient()
+  const { theme, setTheme } = useTheme()
+
+  // Keyboard shortcuts
+  useKeyboardShortcut('d', () => router.push('/dashboard'), { shiftKey: false, metaKey: false })
+  useKeyboardShortcut('b', () => router.push('/dashboard'), { shiftKey: false, metaKey: false })
+  useKeyboardShortcut('a', () => router.push('/dashboard/analytics'), { shiftKey: false, metaKey: false })
+  useKeyboardShortcut('c', () => router.push('/dashboard/admin/conversations'), { shiftKey: false, metaKey: false })
+  useKeyboardShortcut('t', () => router.push('/dashboard/templates'), { shiftKey: false, metaKey: false })
+  useKeyboardShortcut('q', () => router.push('/dashboard/quick-replies'), { shiftKey: false, metaKey: false })
+  useKeyboardShortcut('s', () => router.push('/dashboard/settings'), { shiftKey: false, metaKey: false })
+  useKeyboardShortcut('d', () => setTheme(theme === 'dark' ? 'light' : 'dark'), { metaKey: true })
 
   useEffect(() => {
     checkAuth()
@@ -144,6 +157,9 @@ export default function DashboardLayout({
 
       {/* Global Command Palette */}
       <CommandPalette />
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp />
     </div>
   )
 }
