@@ -414,6 +414,15 @@ export default function BotDetailPage() {
 
               <Button
                 variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/preview`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">👁️‍🗨️</span>
+                <span className="text-sm">Live Preview</span>
+              </Button>
+
+              <Button
+                variant="outline"
                 onClick={() => router.push(`/dashboard/bots/${botId}/embed`)}
                 className="h-auto py-4 flex flex-col items-center gap-2"
               >

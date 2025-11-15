@@ -81,6 +81,7 @@ export default function AdminConversationsPage() {
   const [days, setDays] = useState<string>('30')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   const router = useRouter()
   const { toast } = useToast()
@@ -239,6 +240,42 @@ export default function AdminConversationsPage() {
     }
   }
 
+  const handleExportSingleCSV = (conversation: Conversation) => {
+    try {
+      const csv = exportToCSV([conversation])
+      const filename = generateExportFilename('csv', `conversation_${conversation.sessionId.substring(0, 8)}`)
+      downloadFile(csv, filename, 'text/csv')
+      toast({
+        title: 'Success',
+        description: 'Conversation exported to CSV',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to export conversation',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleExportSingleJSON = (conversation: Conversation) => {
+    try {
+      const json = exportToJSON([conversation])
+      const filename = generateExportFilename('json', `conversation_${conversation.sessionId.substring(0, 8)}`)
+      downloadFile(json, filename, 'application/json')
+      toast({
+        title: 'Success',
+        description: 'Conversation exported to JSON',
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to export conversation',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setSearching(true)
@@ -257,7 +294,7 @@ export default function AdminConversationsPage() {
   }
 
   const expandAll = () => {
-    setExpandedConversations(new Set(conversations.map(c => c.sessionId)))
+    setExpandedConversations(new Set(filteredConversations.map(c => c.sessionId)))
   }
 
   const collapseAll = () => {
@@ -293,6 +330,23 @@ export default function AdminConversationsPage() {
   const removeTag = (tag: string) => {
     setTempTags(tempTags.filter(t => t !== tag))
   }
+
+  const toggleTagFilter = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    )
+  }
+
+  const clearTagFilters = () => {
+    setSelectedTags([])
+  }
+
+  // Filter conversations by selected tags
+  const filteredConversations = selectedTags.length > 0
+    ? conversations.filter((conv) =>
+        selectedTags.every((tag) => conv.tags?.includes(tag))
+      )
+    : conversations
 
   const formatResponseTime = (ms: number): string => {
     if (ms < 1000) return `${ms}ms`
@@ -478,14 +532,61 @@ export default function AdminConversationsPage() {
               </Button>
             </div>
           )}
+
+          {/* Tag Filters */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Tag className="h-4 w-4 text-gray-500" />
+              <Label className="text-sm font-medium">Filter by Tags</Label>
+              {selectedTags.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearTagFilters} className="h-6 px-2 text-xs">
+                  Clear all
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {PREDEFINED_TAGS.map((tag) => {
+                const isSelected = selectedTags.includes(tag)
+                const tagCount = conversations.filter((conv) => conv.tags?.includes(tag)).length
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => toggleTagFilter(tag)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      isSelected
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    disabled={tagCount === 0}
+                  >
+                    {tag} ({tagCount})
+                  </button>
+                )
+              })}
+            </div>
+            {selectedTags.length > 0 && (
+              <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-900">
+                  Filtering by: {selectedTags.map((tag, idx) => (
+                    <span key={tag}>
+                      <strong>{tag}</strong>
+                      {idx < selectedTags.length - 1 && ' AND '}
+                    </span>
+                  ))}
+                  {' '}({filteredConversations.length} conversations)
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Bulk Actions */}
-      {conversations.length > 0 && (
+      {filteredConversations.length > 0 && (
         <div className="flex justify-between items-center mb-4">
           <p className="text-sm text-gray-600">
-            {expandedConversations.size} of {conversations.length} conversations expanded
+            {expandedConversations.size} of {filteredConversations.length} conversations expanded
+            {selectedTags.length > 0 && ` (${conversations.length} total)`}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={expandAll}>
@@ -499,32 +600,41 @@ export default function AdminConversationsPage() {
       )}
 
       {/* Conversations List */}
-      {conversations.length === 0 ? (
+      {filteredConversations.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent>
             <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No conversations found</h3>
             <p className="text-gray-600 mb-6">
-              {searchQuery
+              {searchQuery || selectedTags.length > 0
                 ? 'Try adjusting your search or filters'
                 : 'Conversations will appear here once users start chatting with your bots'}
             </p>
-            {searchQuery && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSearchInput('')
-                }}
-              >
-                Clear search
-              </Button>
+            {(searchQuery || selectedTags.length > 0) && (
+              <div className="flex gap-2 justify-center">
+                {searchQuery && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setSearchInput('')
+                    }}
+                  >
+                    Clear search
+                  </Button>
+                )}
+                {selectedTags.length > 0 && (
+                  <Button variant="outline" onClick={clearTagFilters}>
+                    Clear tag filters
+                  </Button>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {conversations.map((conversation) => {
+          {filteredConversations.map((conversation) => {
             const isExpanded = expandedConversations.has(conversation.sessionId)
             const preview = conversation.messages[0]?.content || 'No messages'
 
@@ -720,10 +830,37 @@ export default function AdminConversationsPage() {
                       ))}
                     </div>
 
+                    {/* Export Options */}
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">
-                        Session ID: <code className="bg-gray-100 px-1 py-0.5 rounded">{conversation.sessionId}</code>
-                      </p>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs text-gray-500">
+                          Session ID: <code className="bg-gray-100 px-1 py-0.5 rounded">{conversation.sessionId}</code>
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleExportSingleCSV(conversation)
+                            }}
+                          >
+                            <FileSpreadsheet className="h-3 w-3 mr-1" />
+                            Export CSV
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleExportSingleJSON(conversation)
+                            }}
+                          >
+                            <FileJson className="h-3 w-3 mr-1" />
+                            Export JSON
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 )}

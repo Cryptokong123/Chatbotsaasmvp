@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Bot, Code, Trash2, Settings, Copy, MessageSquare, TrendingUp, Users } from 'lucide-react'
+import { Plus, Bot, Code, Trash2, Settings, Copy, MessageSquare, TrendingUp, Users, Eye, Power } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -169,6 +169,30 @@ export default function DashboardPage() {
       toast({
         title: 'Error',
         description: error.message || 'Failed to clone bot',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleToggleActive = async (botId: string, currentState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('bots')
+        .update({ is_active: !currentState })
+        .eq('id', botId)
+
+      if (error) throw error
+
+      toast({
+        title: 'Success',
+        description: `Bot ${!currentState ? 'activated' : 'deactivated'} successfully`,
+      })
+
+      fetchBots()
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update bot status',
         variant: 'destructive',
       })
     }
@@ -358,10 +382,36 @@ export default function DashboardPage() {
                       {formatRelativeTime(bot.created_at)}
                     </span>
                   </div>
+
+                  {/* Quick Actions */}
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/dashboard/bots/${bot.id}/preview`)}
+                      aria-label={`Preview ${bot.name}`}
+                      title="Preview bot"
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Preview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleActive(bot.id, bot.is_active)}
+                      aria-label={`Toggle ${bot.name} status`}
+                      title={bot.is_active ? 'Deactivate bot' : 'Activate bot'}
+                      className={bot.is_active ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
+                    >
+                      <Power className="h-4 w-4 mr-1" />
+                      {bot.is_active ? 'Disable' : 'Enable'}
+                    </Button>
+                  </div>
+
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full mt-4"
+                    className="w-full"
                     onClick={() => router.push(`/dashboard/bots/${bot.id}/embed`)}
                   >
                     <Code className="h-4 w-4 mr-2" />
