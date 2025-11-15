@@ -326,48 +326,82 @@ export default function BotDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Manage your bot features</CardDescription>
+            <CardDescription>Manage your bot features and insights</CardDescription>
           </CardHeader>
           <CardContent>
-              <div className="flex justify-between items-center pt-4">
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push(`/dashboard/bots/${botId}/analytics`)}
-                  >
-                    Analytics
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push(`/dashboard/bots/${botId}/presets`)}
-                  >
-                    Preset Responses
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push(`/dashboard/bots/${botId}/actions`)}
-                  >
-                    Webhook Actions
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push(`/dashboard/bots/${botId}/test`)}
-                  >
-                    Test Bot
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push(`/dashboard/bots/${botId}/embed`)}
-                  >
-                    Get Embed Code
-                  </Button>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/analytics`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">📊</span>
+                <span className="text-sm">Analytics</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/insights`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">💡</span>
+                <span className="text-sm">Insights & AI Suggestions</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/monitor`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">👁️</span>
+                <span className="text-sm">Live Monitor</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/presets`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">⚡</span>
+                <span className="text-sm">Presets</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/actions`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">🔗</span>
+                <span className="text-sm">Actions</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/test`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">🧪</span>
+                <span className="text-sm">Test Bot</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/embed`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">📦</span>
+                <span className="text-sm">Embed Code</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => window.open(`/api/conversations/export?botId=${botId}&format=json`, '_blank')}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">⬇️</span>
+                <span className="text-sm">Export Data</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

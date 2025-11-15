@@ -512,3 +512,61 @@ CREATE POLICY "Allow public insert for ratings" ON public.conversation_ratings
 CREATE INDEX IF NOT EXISTS idx_messages_bot_session ON public.messages(bot_id, session_id);
 CREATE INDEX IF NOT EXISTS idx_training_bot_created ON public.training_data(bot_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_usage_stats_user_date ON public.usage_stats(user_id, date DESC);
+
+-- ============================================================================
+-- TEAM COLLABORATION TABLES
+-- ============================================================================
+
+-- Team Members (for Pro/Enterprise plans)
+CREATE TABLE IF NOT EXISTS public.team_members (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  team_owner_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  member_email TEXT NOT NULL,
+  member_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member', 'viewer')),
+  permissions JSONB DEFAULT '{"can_edit_bots": true, "can_delete_bots": false, "can_manage_team": false}',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'suspended')),
+  invited_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  accepted_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(team_owner_id, member_email)
+);
+
+-- Indexes
+CREATE INDEX idx_team_members_owner ON public.team_members(team_owner_id);
+CREATE INDEX idx_team_members_member ON public.team_members(member_id);
+
+-- Enable RLS
+ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Team owners can view their team" ON public.team_members
+  FOR SELECT USING (auth.uid() = team_owner_id OR auth.uid() = member_id);
+
+CREATE POLICY "Team owners can manage team" ON public.team_members
+  FOR ALL USING (auth.uid() = team_owner_id);
+
+-- Activity Log (for audit trail)
+CREATE TABLE IF NOT EXISTS public.activity_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  bot_id UUID REFERENCES public.bots(id) ON DELETE SET NULL,
+  action_type TEXT NOT NULL,
+  action_details JSONB DEFAULT '{}',
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_activity_log_user ON public.activity_log(user_id);
+CREATE INDEX idx_activity_log_bot ON public.activity_log(bot_id);
+CREATE INDEX idx_activity_log_created ON public.activity_log(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users can view own activity" ON public.activity_log
+  FOR SELECT USING (auth.uid() = user_id);
