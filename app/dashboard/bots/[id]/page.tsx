@@ -198,18 +198,36 @@ export default function BotDetailPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push(`/dashboard/bots/${botId}/embed`)}
-                >
-                  Get Embed Code
-                </Button>
-                <Button type="submit" disabled={saving}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
+              <div className="flex justify-between items-center pt-4">
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push(`/dashboard/bots/${botId}/presets`)}
+                  >
+                    Preset Responses
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push(`/dashboard/bots/${botId}/test`)}
+                  >
+                    Test Bot
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push(`/dashboard/bots/${botId}/embed`)}
+                  >
+                    Get Embed Code
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
               </div>
             </form>
           </CardContent>

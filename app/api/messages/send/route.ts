@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { performRAGQuery } from '@/lib/rag'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { findMatchingPreset, type PresetResponse } from '@/lib/preset-matcher'
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,17 +31,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get conversation history
-    const { data: history } = await supabase
-      .from('messages')
-      .select('role, content')
-      .eq('bot_id', botId)
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
-      .limit(10)
-
-    const conversationHistory = history || []
-
     // Store user message
     await supabase.from('messages').insert({
       bot_id: botId,
@@ -49,28 +39,76 @@ export async function POST(request: NextRequest) {
       content: message,
     })
 
-    // Perform RAG query
-    const { response, context } = await performRAGQuery(
-      botId,
-      message,
-      conversationHistory as any
-    )
+    // 🎯 STEP 1: Check preset responses FIRST (saves AI costs!)
+    const { data: presets } = await supabase
+      .from('preset_responses')
+      .select('*')
+      .eq('bot_id', botId)
+      .eq('is_active', true)
 
-    // Store assistant response
-    await supabase.from('messages').insert({
-      bot_id: botId,
-      session_id: sessionId,
-      role: 'assistant',
-      content: response,
-      metadata: {
-        context_used: context.length,
-      },
-    })
+    const matchedPreset = presets ? findMatchingPreset(message, presets as PresetResponse[]) : null
+
+    let response: string
+    let context: any[] = []
+    let usedPreset = false
+
+    if (matchedPreset) {
+      // ✅ Found a preset match - use it directly (no AI cost!)
+      response = matchedPreset.answer
+      usedPreset = true
+
+      // Store assistant response (preset)
+      await supabase.from('messages').insert({
+        bot_id: botId,
+        session_id: sessionId,
+        role: 'assistant',
+        content: response,
+        metadata: {
+          preset_id: matchedPreset.id,
+          preset_used: true,
+        },
+      })
+    } else {
+      // ❌ No preset match - fall back to AI
+      // Get conversation history for AI
+      const { data: history } = await supabase
+        .from('messages')
+        .select('role, content')
+        .eq('bot_id', botId)
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true })
+        .limit(10)
+
+      const conversationHistory = history || []
+
+      // Perform RAG query with AI
+      const ragResult = await performRAGQuery(
+        botId,
+        message,
+        conversationHistory as any
+      )
+
+      response = ragResult.response
+      context = ragResult.context
+
+      // Store assistant response (AI)
+      await supabase.from('messages').insert({
+        bot_id: botId,
+        session_id: sessionId,
+        role: 'assistant',
+        content: response,
+        metadata: {
+          context_used: context.length,
+          preset_used: false,
+        },
+      })
+    }
 
     return NextResponse.json({
       success: true,
       response,
       context,
+      usedPreset, // Indicate if preset was used
     })
   } catch (error: any) {
     console.error('Error processing message:', error)

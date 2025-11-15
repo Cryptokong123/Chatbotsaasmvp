@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS public.users (
   full_name TEXT,
   avatar_url TEXT,
   company_name TEXT,
+  plan TEXT DEFAULT 'demo' CHECK (plan IN ('demo', 'starter', 'pro', 'enterprise')),
+  remove_branding BOOLEAN DEFAULT false,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -339,6 +343,42 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 -- RLS Policies for audit_logs
 CREATE POLICY "Users can view own audit logs" ON public.audit_logs
   FOR SELECT USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- PRESET_RESPONSES TABLE (quick responses that bypass AI)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.preset_responses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bot_id UUID NOT NULL REFERENCES public.bots(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  match_type TEXT DEFAULT 'exact' CHECK (match_type IN ('exact', 'contains', 'starts_with')),
+  priority INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_preset_responses_bot_id ON public.preset_responses(bot_id);
+CREATE INDEX idx_preset_responses_active ON public.preset_responses(is_active) WHERE is_active = true;
+
+-- Enable RLS
+ALTER TABLE public.preset_responses ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for preset_responses
+CREATE POLICY "Users can manage preset responses for own bots" ON public.preset_responses
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.bots
+      WHERE bots.id = preset_responses.bot_id
+      AND bots.user_id = auth.uid()
+    )
+  );
+
+-- Trigger for updated_at
+CREATE TRIGGER update_preset_responses_updated_at BEFORE UPDATE ON public.preset_responses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
 -- Additional Indexes for Performance

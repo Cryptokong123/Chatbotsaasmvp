@@ -36,6 +36,7 @@
     primary_color: '#6C47FF',
     welcome_message: 'Hi! How can I help you today?',
     placeholder_text: 'Type your message...',
+    remove_branding: false,
   };
 
   // State
@@ -296,6 +297,25 @@
         cursor: not-allowed;
       }
 
+      #chatforge-widget-branding {
+        padding: 8px 20px;
+        text-align: center;
+        font-size: 11px;
+        color: #999;
+        background: white;
+        border-top: 1px solid #e5e5e5;
+        border-radius: 0 0 16px 16px;
+      }
+
+      #chatforge-widget-branding a {
+        color: #6C47FF;
+        text-decoration: none;
+      }
+
+      #chatforge-widget-branding a:hover {
+        text-decoration: underline;
+      }
+
       @media (max-width: 480px) {
         #chatforge-widget-window {
           width: calc(100vw - 40px);
@@ -310,6 +330,13 @@
   function createWidget() {
     const container = document.createElement('div');
     container.id = 'chatforge-widget-container';
+
+    // Branding footer (only show if remove_branding is false)
+    const brandingHTML = !botConfig.remove_branding
+      ? `<div id="chatforge-widget-branding">
+          Powered by <a href="https://chatforge.ai" target="_blank" rel="noopener">ChatForge AI</a>
+        </div>`
+      : '';
 
     container.innerHTML = `
       <button id="chatforge-widget-button" aria-label="Open chat">
@@ -340,6 +367,7 @@
             </button>
           </form>
         </div>
+        ${brandingHTML}
       </div>
     `;
 
