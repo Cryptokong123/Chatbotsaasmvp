@@ -1,6 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
 
+/**
+ * Get top intents from conversation tags
+ */
+async function getTopIntents(
+  supabase: any,
+  botIds: string[],
+  startDate: Date
+): Promise<{ intent: string; count: number }[]> {
+  const { data: conversations } = await supabase
+    .from('conversations')
+    .select('tags')
+    .in('bot_id', botIds)
+    .gte('created_at', startDate.toISOString())
+
+  const tagCounts: { [tag: string]: number } = {}
+
+  conversations?.forEach((conv: any) => {
+    if (conv.tags && Array.isArray(conv.tags)) {
+      conv.tags.forEach((tag: string) => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1
+      })
+    }
+  })
+
+  return Object.entries(tagCounts)
+    .map(([intent, count]) => ({ intent, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+}
+
+/**
+ * Calculate response time distribution from response times
+ */
+function getResponseTimeDistribution(
+  responseTimes: { avg_response_time_ms: number }[]
+): { range: string; count: number }[] {
+  const distribution = {
+    '< 1s': 0,
+    '1-3s': 0,
+    '3-5s': 0,
+    '> 5s': 0,
+  }
+
+  responseTimes.forEach((rt) => {
+    const timeInSeconds = (rt.avg_response_time_ms || 0) / 1000
+
+    if (timeInSeconds < 1) {
+      distribution['< 1s']++
+    } else if (timeInSeconds < 3) {
+      distribution['1-3s']++
+    } else if (timeInSeconds < 5) {
+      distribution['3-5s']++
+    } else {
+      distribution['> 5s']++
+    }
+  })
+
+  return Object.entries(distribution).map(([range, count]) => ({
+    range,
+    count,
+  }))
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient()
@@ -168,19 +231,45 @@ export async function GET(request: NextRequest) {
     }
 
     // Peak hours (24 hour distribution)
-    const peakHours = []
-    for (let hour = 0; hour < 24; hour++) {
-      // This is a simplified version - in production you'd query by hour
-      peakHours.push({
-        hour,
-        count: Math.floor(Math.random() * 50), // Placeholder - implement proper hour-based querying
-      })
+    const { data: hourlyData } = await supabase
+      .from('conversations')
+      .select('created_at')
+      .in('bot_id', targetBotIds)
+      .gte('created_at', startDate.toISOString())
+
+    const hourCounts: { [hour: number]: number } = {}
+    for (let i = 0; i < 24; i++) {
+      hourCounts[i] = 0
     }
+
+    hourlyData?.forEach((conv) => {
+      const hour = new Date(conv.created_at).getHours()
+      hourCounts[hour]++
+    })
+
+    const peakHours = Object.entries(hourCounts).map(([hour, count]) => ({
+      hour: parseInt(hour),
+      count,
+    }))
+
+    // Calculate average response time from conversations
+    const { data: responseTimes } = await supabase
+      .from('conversations')
+      .select('avg_response_time_ms')
+      .in('bot_id', targetBotIds)
+      .gte('created_at', startDate.toISOString())
+      .not('avg_response_time_ms', 'is', null)
+
+    const avgResponseTimeMs = responseTimes && responseTimes.length > 0
+      ? responseTimes.reduce((sum, rt) => sum + (rt.avg_response_time_ms || 0), 0) / responseTimes.length
+      : 0
+
+    const avgResponseTime = avgResponseTimeMs > 0 ? (avgResponseTimeMs / 1000).toFixed(1) : '0'
 
     return NextResponse.json({
       totalConversations: totalConversations || 0,
       totalMessages: totalMessages || 0,
-      avgResponseTime: 2.3, // Placeholder - implement proper response time tracking
+      avgResponseTime: parseFloat(avgResponseTime),
       satisfactionRate: Math.round(satisfactionRate),
       activeUsers: totalConversations || 0, // Simplified - each conversation = unique user
       conversationsToday: conversationsToday || 0,
@@ -190,19 +279,10 @@ export async function GET(request: NextRequest) {
       messageTrend: conversationTrend.map(d => ({ ...d, count: d.count * 8 })), // Approx 8 messages per conversation
       satisfactionTrend: conversationTrend.map(d => ({ date: d.date, rate: satisfactionRate })),
       peakHours,
-      topIntents: [
-        { intent: 'support_request', count: Math.floor((totalMessages || 0) * 0.3) },
-        { intent: 'product_inquiry', count: Math.floor((totalMessages || 0) * 0.25) },
-        { intent: 'pricing_question', count: Math.floor((totalMessages || 0) * 0.2) },
-        { intent: 'technical_issue', count: Math.floor((totalMessages || 0) * 0.15) },
-        { intent: 'other', count: Math.floor((totalMessages || 0) * 0.1) },
-      ],
-      responseTimeDistribution: [
-        { range: '< 1s', count: Math.floor((totalMessages || 0) * 0.4) },
-        { range: '1-3s', count: Math.floor((totalMessages || 0) * 0.35) },
-        { range: '3-5s', count: Math.floor((totalMessages || 0) * 0.15) },
-        { range: '> 5s', count: Math.floor((totalMessages || 0) * 0.1) },
-      ],
+      // Intent distribution (use tag data for now, can be enhanced with NLP later)
+      topIntents: await getTopIntents(supabase, targetBotIds, startDate),
+      // Response time distribution from actual data
+      responseTimeDistribution: getResponseTimeDistribution(responseTimes || []),
     })
   } catch (error: any) {
     console.error('Error fetching analytics:', error)

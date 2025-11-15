@@ -1,9 +1,10 @@
 'use client'
 
 import React, { Component, ReactNode } from 'react'
-import { AlertTriangle, RefreshCcw } from 'lucide-react'
+import { AlertTriangle, RefreshCcw, Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { logger } from '@/lib/error-logger'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -14,6 +15,7 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean
   error: Error | null
+  errorInfo: React.ErrorInfo | null
 }
 
 /**
@@ -27,10 +29,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.state = {
       hasError: false,
       error: null,
+      errorInfo: null,
     }
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return {
       hasError: true,
       error,
@@ -38,23 +41,36 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error to console in development
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
+    // Log error using centralized logger
+    logger.error('React Error Boundary caught error', error, {
+      component: 'ErrorBoundary',
+      action: 'component_error',
+      metadata: {
+        componentStack: errorInfo.componentStack,
+      },
+    })
 
     // Call optional error handler
     if (this.props.onError) {
       this.props.onError(error, errorInfo)
     }
 
-    // In production, you could send this to an error reporting service
-    // Example: Sentry.captureException(error, { extra: errorInfo })
+    // Store error info in state
+    this.setState({
+      errorInfo,
+    })
   }
 
   handleReset = () => {
     this.setState({
       hasError: false,
       error: null,
+      errorInfo: null,
     })
+  }
+
+  handleGoHome = () => {
+    window.location.href = '/dashboard'
   }
 
   handleReload = () => {
@@ -85,27 +101,54 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </CardHeader>
             <CardContent className="space-y-4">
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <p className="text-sm font-mono text-red-600 mb-2">
-                    {this.state.error.name}: {this.state.error.message}
-                  </p>
-                  {this.state.error.stack && (
-                    <pre className="text-xs text-gray-600 overflow-auto max-h-48">
-                      {this.state.error.stack}
-                    </pre>
-                  )}
-                </div>
+                <details className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg">
+                  <summary className="cursor-pointer font-medium text-gray-900 dark:text-white mb-2">
+                    Error Details (Development Only)
+                  </summary>
+                  <div className="text-sm space-y-3 mt-3">
+                    <div>
+                      <p className="font-mono text-red-600 dark:text-red-400 mb-2">
+                        {this.state.error.name}: {this.state.error.message}
+                      </p>
+                    </div>
+                    {this.state.error.stack && (
+                      <div>
+                        <strong className="text-gray-900 dark:text-white">Stack Trace:</strong>
+                        <pre className="text-xs text-gray-600 dark:text-gray-400 overflow-auto max-h-48 mt-1 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                          {this.state.error.stack}
+                        </pre>
+                      </div>
+                    )}
+                    {this.state.errorInfo?.componentStack && (
+                      <div>
+                        <strong className="text-gray-900 dark:text-white">Component Stack:</strong>
+                        <pre className="text-xs text-gray-600 dark:text-gray-400 overflow-auto max-h-48 mt-1 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                          {this.state.errorInfo.componentStack}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                </details>
               )}
 
-              <div className="flex gap-3">
-                <Button onClick={this.handleReset} variant="outline" className="flex-1">
+              <div className="flex flex-col gap-2">
+                <Button onClick={this.handleReset} variant="default" className="w-full">
                   <RefreshCcw className="h-4 w-4 mr-2" />
                   Try Again
                 </Button>
-                <Button onClick={this.handleReload} className="flex-1">
+                <Button onClick={this.handleReload} variant="outline" className="w-full">
+                  <RefreshCcw className="h-4 w-4 mr-2" />
                   Reload Page
                 </Button>
+                <Button onClick={this.handleGoHome} variant="outline" className="w-full">
+                  <Home className="h-4 w-4 mr-2" />
+                  Go to Dashboard
+                </Button>
               </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-500 text-center mt-4">
+                If this problem persists, please contact support.
+              </p>
             </CardContent>
           </Card>
         </div>

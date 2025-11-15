@@ -104,21 +104,8 @@ CREATE POLICY "Users can view their quick reply usage" ON quick_reply_usage
     )
   );
 
--- Insert some default quick reply templates
-INSERT INTO quick_replies (user_id, title, message, shortcut, category, is_global)
-VALUES
-  -- Use a system user ID for global templates (you'll need to replace this with actual user ID)
-  ((SELECT id FROM auth.users LIMIT 1), 'Welcome Greeting', 'Hi there! 👋 Thanks for reaching out. How can I help you today?', '/hi', 'greeting', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Thank You', 'Thank you for contacting us! We appreciate your business. 😊', '/thanks', 'thank_you', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Please Wait', 'Thanks for your patience! I''m looking into this for you now. I''ll get back to you shortly.', '/wait', 'support', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Checking Status', 'Let me check on that for you. One moment please...', '/check', 'support', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Issue Resolved', 'Great! I''m glad we could resolve this for you. Is there anything else I can help you with?', '/resolved', 'support', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Apology', 'I sincerely apologize for the inconvenience. Let me make this right for you.', '/sorry', 'apology', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Transfer to Human', 'I''m transferring you to a human agent who can better assist you. They''ll be with you shortly.', '/transfer', 'support', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Business Hours', 'Our business hours are Monday-Friday, 9 AM to 6 PM EST. We''ll respond to your message as soon as we''re back online!', '/hours', 'general', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Follow Up', 'I''ll follow up with you in 24 hours to ensure everything is working properly. Sound good?', '/followup', 'follow_up', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'More Information', 'To help you better, I need a bit more information. Could you please provide [specific details]?', '/moreinfo', 'support', true),
-  ((SELECT id FROM auth.users LIMIT 1), 'Closing', 'Thanks for chatting with us today! Feel free to reach out anytime you need assistance. Have a great day! 🌟', '/bye', 'closing', true);
+-- NOTE: Default quick reply templates have been moved to seed_data.sql
+-- Run seed_data.sql AFTER creating your first user account
 
 -- Comments
 COMMENT ON TABLE quick_replies IS 'Pre-defined message templates for quick responses';
