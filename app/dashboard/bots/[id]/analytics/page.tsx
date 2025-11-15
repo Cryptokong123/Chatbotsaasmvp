@@ -46,8 +46,31 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="container mx-auto py-8 max-w-7xl">
+        <div className="mb-8">
+          <div className="h-8 w-40 bg-gray-200 rounded animate-pulse mb-2"></div>
+          <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Skeleton cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="h-4 w-20 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Skeleton chart */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="h-6 w-32 bg-gray-200 rounded mb-4 animate-pulse"></div>
+            <div className="h-64 bg-gray-100 rounded animate-pulse"></div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -81,6 +104,26 @@ export default function AnalyticsPage() {
           </Select>
         </div>
       </div>
+
+      {/* Empty State */}
+      {analytics.overview?.totalMessages === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+          <p className="text-blue-900 mb-3">
+            <strong>Getting started:</strong> Your bot doesn&apos;t have any conversations yet.
+          </p>
+          <p className="text-blue-800 text-sm mb-4">
+            Share the embed code with your website to start receiving messages and seeing analytics here.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/dashboard/bots/${botId}/embed`)}
+            className="bg-white"
+          >
+            Get Embed Code →
+          </Button>
+        </div>
+      )}
 
       {/* Overview Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">

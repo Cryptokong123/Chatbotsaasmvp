@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Bot, Code, Trash2, Settings, Copy, MessageSquare, TrendingUp, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
@@ -33,6 +34,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [botToDelete, setBotToDelete] = useState<{ id: string; name: string } | null>(null)
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
@@ -104,16 +107,19 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDeleteBot = async (botId: string) => {
-    if (!confirm('Are you sure you want to delete this bot? This action cannot be undone.')) {
-      return
-    }
+  const handleDeleteBot = (botId: string, botName: string) => {
+    setBotToDelete({ id: botId, name: botName })
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!botToDelete) return
 
     try {
       const { error } = await supabase
         .from('bots')
         .delete()
-        .eq('id', botId)
+        .eq('id', botToDelete.id)
 
       if (error) throw error
 
@@ -123,6 +129,8 @@ export default function DashboardPage() {
       })
 
       fetchBots()
+      setDeleteConfirmOpen(false)
+      setBotToDelete(null)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -300,25 +308,28 @@ export default function DashboardPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => router.push(`/dashboard/bots/${bot.id}`)}
-                      title="Settings"
+                      aria-label={`Edit ${bot.name} settings`}
+                      title="Edit settings"
                     >
-                      <Settings className="h-4 w-4" />
+                      <Settings className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleCloneBot(bot.id, bot.name)}
-                      title="Clone Bot"
+                      aria-label={`Clone ${bot.name}`}
+                      title="Clone bot"
                     >
-                      <Copy className="h-4 w-4 text-blue-500" />
+                      <Copy className="h-4 w-4 text-blue-500" aria-hidden="true" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDeleteBot(bot.id)}
-                      title="Delete Bot"
+                      onClick={() => handleDeleteBot(bot.id, bot.name)}
+                      aria-label={`Delete ${bot.name}`}
+                      title="Delete bot"
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4 text-red-500" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
@@ -362,6 +373,31 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete bot &quot;{botToDelete?.name}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the bot and all associated data:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>All conversations and messages</li>
+                <li>Training data</li>
+                <li>Preset responses</li>
+                <li>Bot actions and webhooks</li>
+              </ul>
+              <p className="mt-3 font-semibold text-red-600">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

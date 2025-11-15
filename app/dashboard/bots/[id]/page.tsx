@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
+import { formatRelativeTime } from '@/lib/utils'
 
 export default function BotDetailPage() {
   const params = useParams()
@@ -18,6 +20,7 @@ export default function BotDetailPage() {
   const [bot, setBot] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
@@ -73,6 +76,7 @@ export default function BotDetailPage() {
 
       if (error) throw error
 
+      setLastSaved(new Date())
       toast({
         title: 'Success',
         description: 'Bot updated successfully',
@@ -282,7 +286,26 @@ export default function BotDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="creativityLevel">Creativity Level: {bot.creativity_level || 0.7}</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="creativityLevel">Creativity Level: {bot.creativity_level || 0.7}</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <div>
+                            <p className="font-semibold mb-1">Creativity vs Factual</p>
+                            <p className="text-xs">Lower (0.0) = More factual and precise responses</p>
+                            <p className="text-xs">Higher (1.0) = More creative and varied responses</p>
+                            <p className="text-xs mt-2"><strong>Example:</strong></p>
+                            <p className="text-xs">Low: &quot;The price is $99&quot;</p>
+                            <p className="text-xs">High: &quot;You&apos;re looking at under a Benjamin!&quot;</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <input
                     type="range"
                     id="creativityLevel"
@@ -319,6 +342,11 @@ export default function BotDetailPage() {
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? 'Saving...' : 'Save Personality Settings'}
               </Button>
+              {lastSaved && (
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Last saved {formatRelativeTime(lastSaved.toISOString())}
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>

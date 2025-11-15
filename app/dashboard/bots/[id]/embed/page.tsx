@@ -216,15 +216,57 @@ export default function EmbedCodePage() {
                   </Button>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">Implementation Steps:</h4>
-                  <ol className="list-decimal list-inside space-y-2 text-blue-800">
-                    <li>Copy the embed code above</li>
-                    <li>Open your website&apos;s HTML file</li>
-                    <li>Paste the code just before the closing &lt;/body&gt; tag</li>
-                    <li>Save and reload your website</li>
-                    <li>The chatbot widget will appear in the bottom-right corner</li>
-                  </ol>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2">Quick Start Guide:</h4>
+                    <ol className="list-decimal list-inside space-y-2 text-blue-800 text-sm">
+                      <li>Copy the embed code above</li>
+                      <li>Open your website&apos;s HTML file</li>
+                      <li>Paste the code just before the closing &lt;/body&gt; tag</li>
+                      <li>Save and reload your website</li>
+                      <li>The chatbot widget will appear in the bottom-right corner</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-green-900 mb-2">Platform-Specific Instructions:</h4>
+                    <div className="space-y-3 text-sm text-green-800">
+                      <div>
+                        <p className="font-semibold">WordPress:</p>
+                        <p>Add to Appearance → Theme Editor → footer.php, or use a plugin like &quot;Insert Headers and Footers&quot;</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Shopify:</p>
+                        <p>Online Store → Themes → Edit Code → theme.liquid → paste before &lt;/body&gt;</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">Wix / Squarespace:</p>
+                        <p>Add a custom code block or embed element and paste the code</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">React / Next.js:</p>
+                        <p>Add to your _document.js or layout component using dangerouslySetInnerHTML or a Script component</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-amber-900 mb-2">Troubleshooting:</h4>
+                    <ul className="space-y-2 text-sm text-amber-800">
+                      <li className="flex items-start gap-2">
+                        <span className="font-semibold shrink-0">•</span>
+                        <span><strong>Widget not showing?</strong> Make sure the script is before &lt;/body&gt; and your bot is set to &quot;Active&quot; in settings</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-semibold shrink-0">•</span>
+                        <span><strong>CORS errors?</strong> Make sure your domain is added to allowed origins (contact support)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="font-semibold shrink-0">•</span>
+                        <span><strong>Styling issues?</strong> The widget uses z-index: 9999 - check for CSS conflicts</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime, truncate } from '@/lib/utils'
@@ -35,6 +36,8 @@ export default function TrainingDataPage() {
   const [sourceName, setSourceName] = useState('')
   const [url, setUrl] = useState('')
   const [scraping, setScraping] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [dataToDelete, setDataToDelete] = useState<{ id: string; name: string } | null>(null)
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
 
@@ -189,16 +192,19 @@ export default function TrainingDataPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this training data?')) {
-      return
-    }
+  const handleDelete = (id: string, name: string) => {
+    setDataToDelete({ id, name })
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!dataToDelete) return
 
     try {
       const { error } = await supabase
         .from('training_data')
         .delete()
-        .eq('id', id)
+        .eq('id', dataToDelete.id)
 
       if (error) throw error
 
@@ -208,6 +214,8 @@ export default function TrainingDataPage() {
       })
 
       fetchTrainingData()
+      setDeleteConfirmOpen(false)
+      setDataToDelete(null)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -384,9 +392,11 @@ export default function TrainingDataPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item.id, item.source_name || 'Untitled')}
+                        aria-label={`Delete ${item.source_name || 'training data'}`}
+                        title="Delete training data"
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4 text-red-500" aria-hidden="true" />
                       </Button>
                     </div>
                     <p className="text-sm text-gray-700">
@@ -399,6 +409,25 @@ export default function TrainingDataPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete training data &quot;{dataToDelete?.name}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this training data. Your bot will no longer have access to this information.
+              <p className="mt-3 font-semibold text-red-600">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
