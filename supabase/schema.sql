@@ -282,3 +282,67 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================================
+-- WEBHOOKS TABLE (for integrations)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.webhooks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bot_id UUID NOT NULL REFERENCES public.bots(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  events TEXT[] NOT NULL DEFAULT '{}',
+  secret TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_webhooks_bot_id ON public.webhooks(bot_id);
+
+-- Enable RLS
+ALTER TABLE public.webhooks ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for webhooks
+CREATE POLICY "Users can manage webhooks for own bots" ON public.webhooks
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.bots
+      WHERE bots.id = webhooks.bot_id
+      AND bots.user_id = auth.uid()
+    )
+  );
+
+-- ============================================================================
+-- AUDIT_LOGS TABLE (for compliance and security)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id UUID,
+  metadata JSONB DEFAULT '{}',
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_audit_logs_user_id ON public.audit_logs(user_id);
+CREATE INDEX idx_audit_logs_action ON public.audit_logs(action);
+CREATE INDEX idx_audit_logs_created_at ON public.audit_logs(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for audit_logs
+CREATE POLICY "Users can view own audit logs" ON public.audit_logs
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- Additional Indexes for Performance
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_messages_bot_session ON public.messages(bot_id, session_id);
+CREATE INDEX IF NOT EXISTS idx_training_bot_created ON public.training_data(bot_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_usage_stats_user_date ON public.usage_stats(user_id, date DESC);
