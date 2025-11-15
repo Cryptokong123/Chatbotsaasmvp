@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
 import { exportToCSV, exportToJSON, downloadFile, generateExportFilename } from '@/lib/export-utils'
+import { ConversationsListSkeleton, StatCardSkeleton } from '@/components/skeletons'
 
 interface Message {
   id: string
@@ -356,8 +357,21 @@ export default function AdminConversationsPage() {
 
   if (loading && conversations.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">All Conversations</h1>
+              <p className="text-gray-600">Monitor and review all conversations across all your bots</p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        <ConversationsListSkeleton />
       </div>
     )
   }

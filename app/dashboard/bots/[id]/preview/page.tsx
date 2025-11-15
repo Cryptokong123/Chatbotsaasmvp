@@ -6,6 +6,7 @@ import { ArrowLeft, RefreshCw, Send } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
+import { MessageSkeleton } from '@/components/skeletons'
 
 interface Message {
   role: 'user' | 'assistant'

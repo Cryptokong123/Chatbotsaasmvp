@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
+import { ApiKeysListSkeleton } from '@/components/skeletons'
 
 interface ApiKey {
   id: string
@@ -171,8 +172,26 @@ export default function ApiKeysPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">API Keys</h1>
+              <p className="text-gray-600">Manage API keys for integrating with external systems</p>
+            </div>
+          </div>
+        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-gray-500" />
+              <CardTitle>Your API Keys</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ApiKeysListSkeleton />
+          </CardContent>
+        </Card>
       </div>
     )
   }

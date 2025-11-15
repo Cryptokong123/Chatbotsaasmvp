@@ -10,6 +10,7 @@ import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
 import { OnboardingWizard } from '@/components/onboarding-wizard'
+import { DashboardSkeleton } from '@/components/skeletons'
 
 interface BotType {
   id: string
@@ -199,11 +200,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   return (
