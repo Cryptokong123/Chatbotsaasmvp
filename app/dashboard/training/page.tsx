@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Plus, Upload, Trash2, FileText, Link2 } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { Plus, Upload, Trash2, FileText, Link2, File, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Switch } from '@/components/ui/switch'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime, truncate } from '@/lib/utils'
@@ -38,6 +39,12 @@ export default function TrainingDataPage() {
   const [scraping, setScraping] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [dataToDelete, setDataToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [autoChunk, setAutoChunk] = useState(true)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
+  const [uploadResult, setUploadResult] = useState<any>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
 
@@ -225,6 +232,110 @@ export default function TrainingDataPage() {
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      validateAndSetFile(file)
+    }
+  }
+
+  const validateAndSetFile = (file: File) => {
+    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+    const maxSize = 10 * 1024 * 1024 // 10MB
+
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a PDF, DOCX, or TXT file',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (file.size > maxSize) {
+      toast({
+        title: 'File too large',
+        description: 'File size must be less than 10MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSelectedFile(file)
+    setUploadResult(null)
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      validateAndSetFile(file)
+    }
+  }
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !selectedBot) {
+      toast({
+        title: 'Error',
+        description: 'Please select a bot and a file',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setUploadingFile(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('botId', selectedBot)
+      formData.append('autoChunk', autoChunk.toString())
+
+      const response = await fetch('/api/training/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Upload failed')
+
+      setUploadResult(result.metadata)
+
+      toast({
+        title: 'Success',
+        description: `Document processed successfully! Created ${result.metadata.chunksCreated} chunk${result.metadata.chunksCreated !== 1 ? 's' : ''}.`,
+      })
+
+      setSelectedFile(null)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      fetchTrainingData()
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to upload document',
+        variant: 'destructive',
+      })
+    } finally {
+      setUploadingFile(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -276,6 +387,139 @@ export default function TrainingDataPage() {
                 </option>
               ))}
             </select>
+          </CardContent>
+        </Card>
+
+        {/* Document Upload Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <File className="h-5 w-5 text-purple-500" />
+              Upload Document
+            </CardTitle>
+            <CardDescription>Upload PDF, DOCX, or TXT files to train your bot</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Drag and Drop Zone */}
+            <div
+              className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                dragActive
+                  ? 'border-primary bg-primary/5'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.txt"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {selectedFile ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-green-600">
+                    <CheckCircle2 className="h-8 w-8" />
+                  </div>
+                  <p className="font-medium text-gray-900">{selectedFile.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {(selectedFile.size / 1024).toFixed(1)} KB
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedFile(null)
+                      setUploadResult(null)
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = ''
+                      }
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto" />
+                  <p className="font-medium text-gray-700">
+                    Drop your file here or click to browse
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Supports PDF, DOCX, and TXT files up to 10MB
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Auto-chunk Option */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex-1">
+                <Label htmlFor="auto-chunk" className="text-base font-medium cursor-pointer">
+                  Auto-chunk document
+                </Label>
+                <p className="text-sm text-gray-600 mt-1">
+                  Automatically split large documents into optimal chunks for better training
+                </p>
+              </div>
+              <Switch
+                id="auto-chunk"
+                checked={autoChunk}
+                onCheckedChange={setAutoChunk}
+              />
+            </div>
+
+            {/* Upload Result */}
+            {uploadResult && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-green-900 mb-2">Upload Successful!</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-green-700">File:</span>{' '}
+                        <span className="text-green-900 font-medium">{uploadResult.fileName}</span>
+                      </div>
+                      <div>
+                        <span className="text-green-700">Type:</span>{' '}
+                        <span className="text-green-900 font-medium">{uploadResult.fileType.toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <span className="text-green-700">Words:</span>{' '}
+                        <span className="text-green-900 font-medium">{uploadResult.wordCount.toLocaleString()}</span>
+                      </div>
+                      {uploadResult.pages && (
+                        <div>
+                          <span className="text-green-700">Pages:</span>{' '}
+                          <span className="text-green-900 font-medium">{uploadResult.pages}</span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-green-700">Chunks:</span>{' '}
+                        <span className="text-green-900 font-medium">{uploadResult.chunksCreated}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <Button
+              onClick={handleFileUpload}
+              disabled={uploadingFile || !selectedFile}
+              className="w-full"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {uploadingFile ? 'Processing...' : 'Upload Document'}
+            </Button>
           </CardContent>
         </Card>
 
