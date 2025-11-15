@@ -7,6 +7,7 @@ import { Bot, LogOut, Settings, Database, MessageSquare, Users, Key } from 'luci
 import { Button } from '@/components/ui/button'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { CommandPalette } from '@/components/command-palette'
 
 export default function DashboardLayout({
   children,
@@ -130,6 +131,9 @@ export default function DashboardLayout({
           </ErrorBoundary>
         </div>
       </main>
+
+      {/* Global Command Palette */}
+      <CommandPalette />
     </div>
   )
 }
