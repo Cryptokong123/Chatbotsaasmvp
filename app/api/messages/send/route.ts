@@ -3,16 +3,30 @@ import { performRAGQuery } from '@/lib/rag'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { findMatchingPreset, type PresetResponse } from '@/lib/preset-matcher'
 import { processWithActions } from '@/lib/action-executor'
+import { createApiError, handleSupabaseError, handleOpenAIError } from '@/lib/api-errors'
 
 export async function POST(request: NextRequest) {
   try {
     const { botId, message, sessionId, confirmAction } = await request.json()
 
     if (!botId || !message || !sessionId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+      const { response, status } = createApiError('MISSING_REQUIRED_FIELDS', {
+        missing: [
+          !botId && 'botId',
+          !message && 'message',
+          !sessionId && 'sessionId',
+        ].filter(Boolean),
+      })
+      return NextResponse.json(response, { status })
+    }
+
+    // Validate message length
+    if (message.length > 1000) {
+      const { response, status } = createApiError('MESSAGE_TOO_LONG', {
+        messageLength: message.length,
+        maxLength: 1000,
+      })
+      return NextResponse.json(response, { status })
     }
 
     const supabase = createServerSupabaseClient()
@@ -25,11 +39,14 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true)
       .single()
 
-    if (botError || !bot) {
-      return NextResponse.json(
-        { error: 'Bot not found or inactive' },
-        { status: 404 }
-      )
+    if (botError) {
+      const { response, status } = handleSupabaseError(botError)
+      return NextResponse.json(response, { status })
+    }
+
+    if (!bot) {
+      const { response, status } = createApiError('BOT_NOT_FOUND', { botId })
+      return NextResponse.json(response, { status })
     }
 
     // Store user message
@@ -150,10 +167,19 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error processing message:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+
+    // Handle specific error types
+    if (error.name === 'OpenAIError' || error.code?.startsWith('openai')) {
+      const { response, status } = handleOpenAIError(error)
+      return NextResponse.json(response, { status })
+    }
+
+    // Default to internal error
+    const { response, status } = createApiError('INTERNAL_ERROR', {
+      errorName: error.name,
+      errorMessage: error.message,
+    })
+    return NextResponse.json(response, { status })
   }
 }
 
