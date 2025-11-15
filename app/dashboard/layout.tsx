@@ -56,6 +56,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { href: '/dashboard', label: 'My Bots', icon: Bot },
+    { href: '/dashboard/admin/conversations', label: 'All Conversations', icon: MessageSquare },
     { href: '/dashboard/training', label: 'Training Data', icon: Database },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ]
@@ -75,7 +76,7 @@ export default function DashboardLayout({
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname?.startsWith(item.href))
             const Icon = item.icon
             return (
               <Link
