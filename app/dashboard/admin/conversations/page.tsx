@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
 import { exportToCSV, exportToJSON, downloadFile, generateExportFilename } from '@/lib/export-utils'
 import { ConversationsListSkeleton, StatCardSkeleton } from '@/components/skeletons'
+import { NoConversationsEmpty } from '@/components/empty-states'
 
 interface Message {
   id: string
@@ -615,37 +616,14 @@ export default function AdminConversationsPage() {
 
       {/* Conversations List */}
       {filteredConversations.length === 0 ? (
-        <Card className="text-center py-12">
-          <CardContent>
-            <MessageSquare className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No conversations found</h3>
-            <p className="text-gray-600 mb-6">
-              {searchQuery || selectedTags.length > 0
-                ? 'Try adjusting your search or filters'
-                : 'Conversations will appear here once users start chatting with your bots'}
-            </p>
-            {(searchQuery || selectedTags.length > 0) && (
-              <div className="flex gap-2 justify-center">
-                {searchQuery && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSearchInput('')
-                    }}
-                  >
-                    Clear search
-                  </Button>
-                )}
-                {selectedTags.length > 0 && (
-                  <Button variant="outline" onClick={clearTagFilters}>
-                    Clear tag filters
-                  </Button>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <NoConversationsEmpty
+          hasFilters={!!(searchQuery || selectedTags.length > 0)}
+          onClearFilters={() => {
+            setSearchQuery('')
+            setSearchInput('')
+            clearTagFilters()
+          }}
+        />
       ) : (
         <div className="space-y-4">
           {filteredConversations.map((conversation) => {

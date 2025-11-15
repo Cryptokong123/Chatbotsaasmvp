@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
 import { ApiKeysListSkeleton } from '@/components/skeletons'
+import { NoApiKeysEmpty } from '@/components/empty-states'
 
 interface ApiKey {
   id: string
@@ -239,17 +240,7 @@ export default function ApiKeysPage() {
         </CardHeader>
         <CardContent>
           {apiKeys.length === 0 ? (
-            <div className="text-center py-12">
-              <Key className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No API keys yet</h3>
-              <p className="text-gray-600 mb-6">
-                Create your first API key to start integrating with external systems
-              </p>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create API Key
-              </Button>
-            </div>
+            <NoApiKeysEmpty onCreateKey={() => setShowCreateDialog(true)} />
           ) : (
             <div className="space-y-3">
               {apiKeys.map((apiKey) => (

@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
 import { OnboardingWizard } from '@/components/onboarding-wizard'
 import { DashboardSkeleton } from '@/components/skeletons'
+import { NoBotsEmpty } from '@/components/empty-states'
 
 interface BotType {
   id: string
@@ -299,19 +300,7 @@ export default function DashboardPage() {
 
       {/* Bots Grid */}
       {bots.length === 0 ? (
-        <Card className="text-center py-12">
-          <CardContent>
-            <Bot className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No bots yet</h3>
-            <p className="text-gray-600 mb-6">
-              Create your first AI chatbot to get started
-            </p>
-            <Button onClick={() => router.push('/dashboard/bots/new')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Bot
-            </Button>
-          </CardContent>
-        </Card>
+        <NoBotsEmpty onCreateBot={() => router.push('/dashboard/bots/new')} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bots.map((bot) => (
