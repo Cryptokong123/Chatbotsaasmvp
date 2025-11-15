@@ -381,6 +381,90 @@ CREATE TRIGGER update_preset_responses_updated_at BEFORE UPDATE ON public.preset
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
+-- BOT_ACTIONS TABLE (webhook actions for bots)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.bot_actions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bot_id UUID NOT NULL REFERENCES public.bots(id) ON DELETE CASCADE,
+  name TEXT NOT NULL, -- e.g., "cancel_order"
+  display_name TEXT NOT NULL, -- e.g., "Cancel Order"
+  description TEXT NOT NULL, -- What this action does
+  webhook_url TEXT NOT NULL, -- Customer's endpoint
+  method TEXT DEFAULT 'POST' CHECK (method IN ('GET', 'POST', 'PUT', 'PATCH', 'DELETE')),
+  headers JSONB DEFAULT '{}', -- Custom headers (API keys, etc.)
+  parameters JSONB DEFAULT '[]', -- Expected parameters with schema
+  requires_confirmation BOOLEAN DEFAULT true, -- Ask user before executing
+  confirmation_message TEXT, -- Custom confirmation prompt
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(bot_id, name)
+);
+
+-- Indexes
+CREATE INDEX idx_bot_actions_bot_id ON public.bot_actions(bot_id);
+CREATE INDEX idx_bot_actions_active ON public.bot_actions(is_active) WHERE is_active = true;
+
+-- Enable RLS
+ALTER TABLE public.bot_actions ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for bot_actions
+CREATE POLICY "Users can manage actions for own bots" ON public.bot_actions
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.bots
+      WHERE bots.id = bot_actions.bot_id
+      AND bots.user_id = auth.uid()
+    )
+  );
+
+-- Trigger for updated_at
+CREATE TRIGGER update_bot_actions_updated_at BEFORE UPDATE ON public.bot_actions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- ACTION_LOGS TABLE (track action executions)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.action_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  action_id UUID NOT NULL REFERENCES public.bot_actions(id) ON DELETE CASCADE,
+  bot_id UUID NOT NULL REFERENCES public.bots(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL, -- Link to conversation
+  message_id UUID REFERENCES public.messages(id) ON DELETE SET NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'executed', 'failed', 'cancelled')),
+  request_payload JSONB DEFAULT '{}', -- What was sent
+  response_payload JSONB DEFAULT '{}', -- What was received
+  http_status INTEGER,
+  error_message TEXT,
+  execution_time_ms INTEGER, -- How long it took
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  executed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Indexes
+CREATE INDEX idx_action_logs_action_id ON public.action_logs(action_id);
+CREATE INDEX idx_action_logs_bot_id ON public.action_logs(bot_id);
+CREATE INDEX idx_action_logs_session_id ON public.action_logs(session_id);
+CREATE INDEX idx_action_logs_status ON public.action_logs(status);
+CREATE INDEX idx_action_logs_created_at ON public.action_logs(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE public.action_logs ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for action_logs
+CREATE POLICY "Users can view action logs for own bots" ON public.action_logs
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.bots
+      WHERE bots.id = action_logs.bot_id
+      AND bots.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Allow public insert for action logs" ON public.action_logs
+  FOR INSERT WITH CHECK (true); -- Validated in API layer
+
+-- ============================================================================
 -- Additional Indexes for Performance
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_messages_bot_session ON public.messages(bot_id, session_id);

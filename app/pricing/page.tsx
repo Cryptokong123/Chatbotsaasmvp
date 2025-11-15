@@ -143,6 +143,32 @@ export default function PricingPage() {
                     </li>
 
                     <li className="flex items-start gap-2">
+                      {features.canUseActions ? (
+                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <span className="w-5 h-5 mt-0.5 flex-shrink-0 text-muted-foreground">✗</span>
+                      )}
+                      <span className={`text-sm ${!features.canUseActions ? 'text-muted-foreground line-through' : ''}`}>
+                        {features.canUseActions
+                          ? features.maxActions === -1
+                            ? 'Unlimited webhook actions'
+                            : `${features.maxActions} webhook actions per bot`
+                          : 'No webhook actions'}
+                      </span>
+                    </li>
+
+                    {features.canUseActions && (
+                      <li className="flex items-start gap-2">
+                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">
+                          {features.maxActionCalls === -1
+                            ? 'Unlimited action calls'
+                            : `${features.maxActionCalls} action calls/month`}
+                        </span>
+                      </li>
+                    )}
+
+                    <li className="flex items-start gap-2">
                       {features.canEmbed ? (
                         <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                       ) : (

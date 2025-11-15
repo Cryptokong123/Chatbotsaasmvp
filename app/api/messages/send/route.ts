@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { performRAGQuery } from '@/lib/rag'
 import { createServerSupabaseClient } from '@/lib/supabase'
 import { findMatchingPreset, type PresetResponse } from '@/lib/preset-matcher'
+import { processWithActions } from '@/lib/action-executor'
 
 export async function POST(request: NextRequest) {
   try {
-    const { botId, message, sessionId } = await request.json()
+    const { botId, message, sessionId, confirmAction } = await request.json()
 
     if (!botId || !message || !sessionId) {
       return NextResponse.json(
@@ -51,6 +52,9 @@ export async function POST(request: NextRequest) {
     let response: string
     let context: any[] = []
     let usedPreset = false
+    let actionExecuted = false
+    let requiresConfirmation = false
+    let confirmationData: any = null
 
     if (matchedPreset) {
       // ✅ Found a preset match - use it directly (no AI cost!)
@@ -69,7 +73,7 @@ export async function POST(request: NextRequest) {
         },
       })
     } else {
-      // ❌ No preset match - fall back to AI
+      // ❌ No preset match - try actions or fall back to AI
       // Get conversation history for AI
       const { data: history } = await supabase
         .from('messages')
@@ -81,34 +85,68 @@ export async function POST(request: NextRequest) {
 
       const conversationHistory = history || []
 
-      // Perform RAG query with AI
-      const ragResult = await performRAGQuery(
+      // 🎯 STEP 2: Check if actions can handle this (function calling)
+      const actionResult = await processWithActions(
         botId,
         message,
-        conversationHistory as any
+        conversationHistory as any,
+        bot.instructions
       )
 
-      response = ragResult.response
-      context = ragResult.context
+      if (actionResult.actionExecuted || actionResult.requiresConfirmation || actionResult.response) {
+        // Action was executed or needs confirmation
+        response = actionResult.response
+        actionExecuted = actionResult.actionExecuted || false
+        requiresConfirmation = actionResult.requiresConfirmation || false
+        confirmationData = actionResult.confirmationData || null
 
-      // Store assistant response (AI)
-      await supabase.from('messages').insert({
-        bot_id: botId,
-        session_id: sessionId,
-        role: 'assistant',
-        content: response,
-        metadata: {
-          context_used: context.length,
-          preset_used: false,
-        },
-      })
+        // Store assistant response (action)
+        await supabase.from('messages').insert({
+          bot_id: botId,
+          session_id: sessionId,
+          role: 'assistant',
+          content: response,
+          metadata: {
+            action_executed: actionExecuted,
+            requires_confirmation: requiresConfirmation,
+            confirmation_data: confirmationData,
+            preset_used: false,
+          },
+        })
+      } else {
+        // 🎯 STEP 3: Fall back to regular RAG query
+        const ragResult = await performRAGQuery(
+          botId,
+          message,
+          conversationHistory as any
+        )
+
+        response = ragResult.response
+        context = ragResult.context
+
+        // Store assistant response (AI)
+        await supabase.from('messages').insert({
+          bot_id: botId,
+          session_id: sessionId,
+          role: 'assistant',
+          content: response,
+          metadata: {
+            context_used: context.length,
+            preset_used: false,
+            action_executed: false,
+          },
+        })
+      }
     }
 
     return NextResponse.json({
       success: true,
       response,
       context,
-      usedPreset, // Indicate if preset was used
+      usedPreset,
+      actionExecuted,
+      requiresConfirmation,
+      confirmationData,
     })
   } catch (error: any) {
     console.error('Error processing message:', error)

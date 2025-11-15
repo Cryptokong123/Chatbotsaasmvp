@@ -210,6 +210,13 @@ export default function BotDetailPage() {
                   <Button
                     type="button"
                     variant="outline"
+                    onClick={() => router.push(`/dashboard/bots/${botId}/actions`)}
+                  >
+                    Webhook Actions
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => router.push(`/dashboard/bots/${botId}/test`)}
                   >
                     Test Bot
