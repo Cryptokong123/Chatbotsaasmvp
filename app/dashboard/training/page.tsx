@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Upload, Trash2, FileText } from 'lucide-react'
+import { Plus, Upload, Trash2, FileText, Link2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +33,8 @@ export default function TrainingDataPage() {
   const [uploading, setUploading] = useState(false)
   const [content, setContent] = useState('')
   const [sourceName, setSourceName] = useState('')
+  const [url, setUrl] = useState('')
+  const [scraping, setScraping] = useState(false)
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
 
@@ -143,6 +145,50 @@ export default function TrainingDataPage() {
     }
   }
 
+  const handleScrapeUrl = async () => {
+    if (!url.trim() || !selectedBot) {
+      toast({
+        title: 'Error',
+        description: 'Please select a bot and enter a URL',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setScraping(true)
+
+    try {
+      const response = await fetch('/api/training/scrape-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          botId: selectedBot,
+          url,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error || 'Scraping failed')
+
+      toast({
+        title: 'Success',
+        description: `Scraped ${result.stats.wordCount} words from "${result.stats.title}"`,
+      })
+
+      setUrl('')
+      fetchTrainingData()
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to scrape URL',
+        variant: 'destructive',
+      })
+    } finally {
+      setScraping(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this training data?')) {
       return
@@ -202,62 +248,108 @@ export default function TrainingDataPage() {
         <p className="text-gray-600 mt-1">Upload content to train your chatbots</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upload Section */}
+      <div className="space-y-6">
+        {/* Bot Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>Add Training Data</CardTitle>
-            <CardDescription>Upload text content for your bot to learn from</CardDescription>
+            <CardTitle>Select Bot</CardTitle>
+            <CardDescription>Choose which bot to add training data to</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="bot">Select Bot</Label>
-              <select
-                id="bot"
-                value={selectedBot}
-                onChange={(e) => setSelectedBot(e.target.value)}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {bots.map((bot) => (
-                  <option key={bot.id} value={bot.id}>
-                    {bot.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sourceName">Source Name (Optional)</Label>
-              <Input
-                id="sourceName"
-                placeholder="e.g., Product Documentation"
-                value={sourceName}
-                onChange={(e) => setSourceName(e.target.value)}
-                disabled={uploading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                placeholder="Paste your content here..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                disabled={uploading}
-                rows={10}
-              />
-              <p className="text-sm text-gray-500">
-                Tip: Paste FAQs, documentation, or any text you want your bot to learn from
-              </p>
-            </div>
-
-            <Button onClick={handleUpload} disabled={uploading} className="w-full">
-              <Upload className="h-4 w-4 mr-2" />
-              {uploading ? 'Uploading...' : 'Upload Training Data'}
-            </Button>
+          <CardContent>
+            <select
+              id="bot"
+              value={selectedBot}
+              onChange={(e) => setSelectedBot(e.target.value)}
+              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {bots.map((bot) => (
+                <option key={bot.id} value={bot.id}>
+                  {bot.name}
+                </option>
+              ))}
+            </select>
           </CardContent>
         </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* URL Scraper Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Link2 className="h-5 w-5 text-blue-500" />
+                Import from URL
+              </CardTitle>
+              <CardDescription>Automatically extract content from any webpage</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="url">Website URL</Label>
+                <Input
+                  id="url"
+                  type="url"
+                  placeholder="https://example.com/documentation"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  disabled={scraping}
+                />
+                <p className="text-sm text-gray-500">
+                  Enter a URL to automatically extract and import its content
+                </p>
+              </div>
+
+              <Button onClick={handleScrapeUrl} disabled={scraping || !url.trim()} className="w-full">
+                <Link2 className="h-4 w-4 mr-2" />
+                {scraping ? 'Scraping...' : 'Import from URL'}
+              </Button>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-800">
+                  <strong>Tip:</strong> Use this to quickly import your knowledge base, documentation, FAQs, or any public webpage content.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Manual Upload Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-green-500" />
+                Manual Upload
+              </CardTitle>
+              <CardDescription>Paste text content directly</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sourceName">Source Name (Optional)</Label>
+                <Input
+                  id="sourceName"
+                  placeholder="e.g., Product Documentation"
+                  value={sourceName}
+                  onChange={(e) => setSourceName(e.target.value)}
+                  disabled={uploading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="content">Content</Label>
+                <Textarea
+                  id="content"
+                  placeholder="Paste your content here..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  disabled={uploading}
+                  rows={6}
+                />
+              </div>
+
+              <Button onClick={handleUpload} disabled={uploading || !content.trim()} className="w-full">
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? 'Uploading...' : 'Upload Training Data'}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Training Data List */}
         <Card>

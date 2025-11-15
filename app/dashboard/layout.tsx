@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Bot, LogOut, Settings, Database, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
+import { ErrorBoundary } from '@/components/error-boundary'
 
 export default function DashboardLayout({
   children,
@@ -121,7 +122,9 @@ export default function DashboardLayout({
       {/* Main content */}
       <main className="ml-64">
         <div className="p-8">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </div>
       </main>
     </div>

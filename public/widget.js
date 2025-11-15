@@ -84,6 +84,25 @@
     }
   }
 
+  // Send rating to API
+  async function sendRating(rating) {
+    try {
+      await fetch(`${API_URL}/api/ratings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          botId: BOT_ID,
+          sessionId: SESSION_ID,
+          rating: rating,
+        }),
+      });
+    } catch (error) {
+      console.error('ChatForge AI: Error sending rating', error);
+    }
+  }
+
   // Create styles
   function createStyles() {
     const style = document.createElement('style');
@@ -207,6 +226,56 @@
         color: #1a1a1a;
         border: 1px solid #e5e5e5;
         border-bottom-left-radius: 4px;
+      }
+
+      .chatforge-message-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        max-width: 80%;
+      }
+
+      .chatforge-rating-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+      }
+
+      .chatforge-rating-buttons:hover {
+        opacity: 1;
+      }
+
+      .chatforge-rating-button {
+        background: white;
+        border: 1px solid #e5e5e5;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+      }
+
+      .chatforge-rating-button:hover {
+        background: #f8f8f9;
+        border-color: #d5d5d5;
+        transform: scale(1.1);
+      }
+
+      .chatforge-rating-button.rated {
+        background: ${botConfig.primary_color};
+        color: white;
+        border-color: ${botConfig.primary_color};
+      }
+
+      .chatforge-rating-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
       }
 
       .chatforge-message.loading {
@@ -377,11 +446,57 @@
   // Add message to UI
   function addMessage(content, role) {
     const messagesContainer = document.getElementById('chatforge-widget-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chatforge-message ${role}`;
-    messageDiv.textContent = content;
-    messagesContainer.appendChild(messageDiv);
+
+    if (role === 'assistant') {
+      // Create wrapper for assistant messages with rating buttons
+      const wrapper = document.createElement('div');
+      wrapper.className = 'chatforge-message-wrapper';
+
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `chatforge-message ${role}`;
+      messageDiv.textContent = content;
+
+      const ratingButtons = document.createElement('div');
+      ratingButtons.className = 'chatforge-rating-buttons';
+      ratingButtons.innerHTML = `
+        <button class="chatforge-rating-button chatforge-rating-up" aria-label="Good response" title="Good response">
+          👍
+        </button>
+        <button class="chatforge-rating-button chatforge-rating-down" aria-label="Bad response" title="Bad response">
+          👎
+        </button>
+      `;
+
+      wrapper.appendChild(messageDiv);
+      wrapper.appendChild(ratingButtons);
+      messagesContainer.appendChild(wrapper);
+
+      // Add rating button listeners
+      const upButton = ratingButtons.querySelector('.chatforge-rating-up');
+      const downButton = ratingButtons.querySelector('.chatforge-rating-down');
+
+      upButton.addEventListener('click', () => handleRating(1, upButton, downButton));
+      downButton.addEventListener('click', () => handleRating(-1, downButton, upButton));
+    } else {
+      // User messages don't need ratings
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `chatforge-message ${role}`;
+      messageDiv.textContent = content;
+      messagesContainer.appendChild(messageDiv);
+    }
+
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  // Handle rating button click
+  function handleRating(rating, clickedButton, otherButton) {
+    // Visual feedback
+    clickedButton.classList.add('rated');
+    clickedButton.disabled = true;
+    otherButton.disabled = true;
+
+    // Send rating to API
+    sendRating(rating);
   }
 
   // Show loading indicator
