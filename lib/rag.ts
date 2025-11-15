@@ -60,8 +60,52 @@ export async function performRAGQuery(
 
   const context: RAGContext[] = matchedDocs || []
 
-  // Step 4: Build system prompt with context
+  // Step 4: Build system prompt with context and personality
   let systemPrompt = bot.instructions || 'You are a helpful assistant.'
+
+  // Add personality traits to system prompt
+  const personalityTraits: string[] = []
+
+  if (bot.tone) {
+    const toneDescriptions = {
+      professional: 'professional and businesslike',
+      friendly: 'warm and friendly',
+      casual: 'casual and conversational',
+      formal: 'formal and polished',
+      enthusiastic: 'enthusiastic and energetic'
+    }
+    personalityTraits.push(`Use a ${toneDescriptions[bot.tone as keyof typeof toneDescriptions] || bot.tone} tone`)
+  }
+
+  if (bot.formality) {
+    const formalityDescriptions = {
+      very_formal: 'extremely formal language, address users with utmost respect',
+      formal: 'formal language and proper grammar',
+      balanced: 'balanced mix of professional and approachable language',
+      casual: 'casual language that\'s still respectful',
+      very_casual: 'very casual and relaxed language'
+    }
+    personalityTraits.push(formalityDescriptions[bot.formality as keyof typeof formalityDescriptions] || 'balanced language')
+  }
+
+  if (bot.use_emojis) {
+    personalityTraits.push('use relevant emojis to make responses more engaging')
+  } else {
+    personalityTraits.push('avoid using emojis in responses')
+  }
+
+  if (bot.response_length) {
+    const lengthDescriptions = {
+      concise: 'Keep responses brief and to the point, typically 1-2 sentences unless more detail is explicitly requested',
+      balanced: 'Provide balanced responses with enough detail to be helpful',
+      detailed: 'Provide detailed, comprehensive responses with thorough explanations'
+    }
+    personalityTraits.push(lengthDescriptions[bot.response_length as keyof typeof lengthDescriptions] || lengthDescriptions.balanced)
+  }
+
+  if (personalityTraits.length > 0) {
+    systemPrompt += `\n\nPersonality guidelines:\n- ${personalityTraits.join('\n- ')}`
+  }
 
   if (context.length > 0) {
     const contextText = context
@@ -87,10 +131,20 @@ export async function performRAGQuery(
   // Add current user message
   messages.push({ role: 'user', content: userMessage })
 
-  // Step 6: Generate response using LLM
+  // Step 6: Determine generation parameters based on personality
+  const temperature = bot.creativity_level !== undefined ? bot.creativity_level : 0.7
+
+  const maxTokensMap = {
+    concise: 300,
+    balanced: 800,
+    detailed: 1500
+  }
+  const maxTokens = maxTokensMap[bot.response_length as keyof typeof maxTokensMap] || 800
+
+  // Step 7: Generate response using LLM
   const response = await generateChatCompletion(messages, {
-    temperature: 0.7,
-    maxTokens: 1000,
+    temperature,
+    maxTokens,
   })
 
   return {

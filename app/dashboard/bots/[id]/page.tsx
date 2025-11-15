@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -62,6 +63,11 @@ export default function BotDetailPage() {
           placeholder_text: bot.placeholder_text,
           primary_color: bot.primary_color,
           is_active: bot.is_active,
+          tone: bot.tone,
+          formality: bot.formality,
+          use_emojis: bot.use_emojis,
+          response_length: bot.response_length,
+          creativity_level: bot.creativity_level,
         })
         .eq('id', botId)
 
@@ -198,8 +204,140 @@ export default function BotDetailPage() {
                 </div>
               </div>
 
+              <Button type="submit" disabled={saving} className="w-full">
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Personality Settings</CardTitle>
+            <CardDescription>Customize how your bot communicates</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdate} className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tone">Tone</Label>
+                  <Select
+                    value={bot.tone || 'professional'}
+                    onValueChange={(value) => setBot({ ...bot, tone: value })}
+                    disabled={saving}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="professional">Professional</SelectItem>
+                      <SelectItem value="friendly">Friendly</SelectItem>
+                      <SelectItem value="casual">Casual</SelectItem>
+                      <SelectItem value="formal">Formal</SelectItem>
+                      <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500">Overall tone and style of communication</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="formality">Formality Level</Label>
+                  <Select
+                    value={bot.formality || 'balanced'}
+                    onValueChange={(value) => setBot({ ...bot, formality: value })}
+                    disabled={saving}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="very_formal">Very Formal</SelectItem>
+                      <SelectItem value="formal">Formal</SelectItem>
+                      <SelectItem value="balanced">Balanced</SelectItem>
+                      <SelectItem value="casual">Casual</SelectItem>
+                      <SelectItem value="very_casual">Very Casual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500">How formal the language should be</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="responseLength">Response Length</Label>
+                  <Select
+                    value={bot.response_length || 'balanced'}
+                    onValueChange={(value) => setBot({ ...bot, response_length: value })}
+                    disabled={saving}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="concise">Concise (1-2 sentences)</SelectItem>
+                      <SelectItem value="balanced">Balanced</SelectItem>
+                      <SelectItem value="detailed">Detailed & Comprehensive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500">Preferred length of responses</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="creativityLevel">Creativity Level: {bot.creativity_level || 0.7}</Label>
+                  <input
+                    type="range"
+                    id="creativityLevel"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={bot.creativity_level || 0.7}
+                    onChange={(e) => setBot({ ...bot, creativity_level: parseFloat(e.target.value) })}
+                    disabled={saving}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Factual & Precise</span>
+                    <span>Creative & Varied</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="useEmojis"
+                    checked={bot.use_emojis || false}
+                    onChange={(e) => setBot({ ...bot, use_emojis: e.target.checked })}
+                    disabled={saving}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="useEmojis" className="cursor-pointer">
+                    Use emojis in responses
+                  </Label>
+                </div>
+              </div>
+
+              <Button type="submit" disabled={saving} className="w-full">
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Personality Settings'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Manage your bot features</CardDescription>
+          </CardHeader>
+          <CardContent>
               <div className="flex justify-between items-center pt-4">
                 <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push(`/dashboard/bots/${botId}/analytics`)}
+                  >
+                    Analytics
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -221,8 +359,6 @@ export default function BotDetailPage() {
                   >
                     Test Bot
                   </Button>
-                </div>
-                <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -230,13 +366,8 @@ export default function BotDetailPage() {
                   >
                     Get Embed Code
                   </Button>
-                  <Button type="submit" disabled={saving}>
-                    <Save className="h-4 w-4 mr-2" />
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </Button>
                 </div>
               </div>
-            </form>
           </CardContent>
         </Card>
       </div>

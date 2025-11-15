@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,17 +10,33 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
+import { getAllTemplates, type BotTemplate } from '@/lib/bot-templates'
 
 export default function NewBotPage() {
+  const [step, setStep] = useState<'template' | 'customize'>('template')
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [instructions, setInstructions] = useState('You are a helpful assistant. Answer questions based on the provided context.')
   const [welcomeMessage, setWelcomeMessage] = useState('Hi! How can I help you today?')
+  const [placeholderText, setPlaceholderText] = useState('Type your message...')
   const [primaryColor, setPrimaryColor] = useState('#6C47FF')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
+  const templates = getAllTemplates()
+
+  const handleTemplateSelect = (templateId: string, template: BotTemplate) => {
+    setSelectedTemplate(templateId)
+    setName(template.name)
+    setDescription(template.description || '')
+    setInstructions(template.instructions)
+    setWelcomeMessage(template.welcome_message)
+    setPlaceholderText(template.placeholder_text)
+    setPrimaryColor(template.primary_color)
+    setStep('customize')
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,6 +54,7 @@ export default function NewBotPage() {
           description,
           instructions,
           welcome_message: welcomeMessage,
+          placeholder_text: placeholderText,
           primary_color: primaryColor,
         })
         .select()
@@ -63,30 +80,74 @@ export default function NewBotPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-6xl">
       {/* Header */}
       <div className="mb-8">
         <Button
           variant="ghost"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (step === 'customize') {
+              setStep('template')
+            } else {
+              router.back()
+            }
+          }}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
         <h1 className="text-3xl font-bold text-gray-900">Create New Bot</h1>
-        <p className="text-gray-600 mt-1">Set up your AI chatbot</p>
+        <p className="text-gray-600 mt-1">
+          {step === 'template' ? 'Choose a template to get started' : 'Customize your bot'}
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Bot Configuration</CardTitle>
-          <CardDescription>
-            Configure your bot's behavior and appearance
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreate} className="space-y-6">
+      {/* Step 1: Template Selection */}
+      {step === 'template' && (
+        <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {templates.map(({ id, template }) => (
+              <Card
+                key={id}
+                className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
+                onClick={() => handleTemplateSelect(id, template)}
+              >
+                <CardHeader>
+                  <div className="text-4xl mb-2">{template.icon || '🤖'}</div>
+                  <CardTitle className="text-lg">{template.name}</CardTitle>
+                  <CardDescription className="text-sm">
+                    {template.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: template.primary_color }}
+                    />
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {template.category || 'General'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Customize Bot */}
+      {step === 'customize' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Bot Configuration</CardTitle>
+            <CardDescription>
+              Customize your bot's behavior and appearance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreate} className="space-y-6">
             {/* Basic Info */}
             <div className="space-y-4">
               <div className="space-y-2">
@@ -141,6 +202,17 @@ export default function NewBotPage() {
                   disabled={loading}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="placeholderText">Input Placeholder</Label>
+                <Input
+                  id="placeholderText"
+                  placeholder="Type your message..."
+                  value={placeholderText}
+                  onChange={(e) => setPlaceholderText(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             {/* Appearance */}
@@ -168,22 +240,23 @@ export default function NewBotPage() {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Bot'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="flex justify-end space-x-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep('template')}
+                  disabled={loading}
+                >
+                  Change Template
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Creating...' : 'Create Bot'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

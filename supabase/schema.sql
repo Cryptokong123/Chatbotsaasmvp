@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS public.users (
   remove_branding BOOLEAN DEFAULT false,
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
+  onboarding_completed BOOLEAN DEFAULT false,
+  onboarding_step INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -46,6 +48,12 @@ CREATE TABLE IF NOT EXISTS public.bots (
   welcome_message TEXT DEFAULT 'Hi! How can I help you today?',
   placeholder_text TEXT DEFAULT 'Type your message...',
   is_active BOOLEAN DEFAULT true,
+  -- Personality settings
+  tone TEXT DEFAULT 'professional' CHECK (tone IN ('professional', 'friendly', 'casual', 'formal', 'enthusiastic')),
+  formality TEXT DEFAULT 'balanced' CHECK (formality IN ('very_formal', 'formal', 'balanced', 'casual', 'very_casual')),
+  use_emojis BOOLEAN DEFAULT false,
+  response_length TEXT DEFAULT 'balanced' CHECK (response_length IN ('concise', 'balanced', 'detailed')),
+  creativity_level DECIMAL(2,1) DEFAULT 0.7 CHECK (creativity_level >= 0 AND creativity_level <= 1),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -463,6 +471,40 @@ CREATE POLICY "Users can view action logs for own bots" ON public.action_logs
 
 CREATE POLICY "Allow public insert for action logs" ON public.action_logs
   FOR INSERT WITH CHECK (true); -- Validated in API layer
+
+-- ============================================================================
+-- CONVERSATION_RATINGS TABLE (thumbs up/down for responses)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.conversation_ratings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  message_id UUID NOT NULL REFERENCES public.messages(id) ON DELETE CASCADE,
+  bot_id UUID NOT NULL REFERENCES public.bots(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating IN (-1, 1)), -- -1 = thumbs down, 1 = thumbs up
+  feedback TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_conversation_ratings_message ON public.conversation_ratings(message_id);
+CREATE INDEX idx_conversation_ratings_bot ON public.conversation_ratings(bot_id);
+CREATE INDEX idx_conversation_ratings_created ON public.conversation_ratings(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE public.conversation_ratings ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users can view ratings for own bots" ON public.conversation_ratings
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.bots
+      WHERE bots.id = conversation_ratings.bot_id
+      AND bots.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Allow public insert for ratings" ON public.conversation_ratings
+  FOR INSERT WITH CHECK (true);
 
 -- ============================================================================
 -- Additional Indexes for Performance

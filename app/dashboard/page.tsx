@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
 import { formatRelativeTime } from '@/lib/utils'
+import { OnboardingWizard } from '@/components/onboarding-wizard'
 
 interface BotType {
   id: string
@@ -21,13 +22,38 @@ interface BotType {
 export default function DashboardPage() {
   const [bots, setBots] = useState<BotType[]>([])
   const [loading, setLoading] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
 
   useEffect(() => {
     fetchBots()
+    checkOnboarding()
   }, [])
+
+  const checkOnboarding = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      setUserId(user.id)
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('onboarding_completed')
+        .eq('id', user.id)
+        .single()
+
+      // Show onboarding if user hasn't completed it yet
+      if (userData && !userData.onboarding_completed) {
+        setShowOnboarding(true)
+      }
+    } catch (error) {
+      console.error('Error checking onboarding:', error)
+    }
+  }
 
   const fetchBots = async () => {
     try {
@@ -92,6 +118,18 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {/* Onboarding Wizard */}
+      {userId && (
+        <OnboardingWizard
+          open={showOnboarding}
+          onOpenChange={(open) => {
+            setShowOnboarding(open)
+            if (!open) fetchBots() // Refresh bots when onboarding closes
+          }}
+          userId={userId}
+        />
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>

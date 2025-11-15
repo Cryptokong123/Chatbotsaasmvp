@@ -1,16 +1,44 @@
 import OpenAI from 'openai'
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+/**
+ * Multi-key rotation for avoiding rate limits
+ * Set OPENAI_API_KEYS in .env (comma-separated) or fall back to single key
+ */
+const apiKeys = process.env.OPENAI_API_KEYS
+  ? process.env.OPENAI_API_KEYS.split(',').map((k) => k.trim())
+  : [process.env.OPENAI_API_KEY || '']
+
+let currentKeyIndex = 0
+
+/**
+ * Get next API key in rotation
+ */
+function getNextApiKey(): string {
+  const key = apiKeys[currentKeyIndex]
+  currentKeyIndex = (currentKeyIndex + 1) % apiKeys.length
+  return key
+}
+
+/**
+ * Create OpenAI client with current key
+ */
+function createOpenAIClient(): OpenAI {
+  return new OpenAI({
+    apiKey: getNextApiKey(),
+  })
+}
+
+// Initialize OpenAI client with rotation
+const openai = createOpenAIClient()
 
 /**
  * Generate embeddings for text using OpenAI's text-embedding-3-small model
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const response = await openai.embeddings.create({
+    // Use new client for key rotation
+    const client = createOpenAIClient()
+    const response = await client.embeddings.create({
       model: 'text-embedding-3-small',
       input: text,
       encoding_format: 'float',
@@ -28,7 +56,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   try {
-    const response = await openai.embeddings.create({
+    // Use new client for key rotation
+    const client = createOpenAIClient()
+    const response = await client.embeddings.create({
       model: 'text-embedding-3-small',
       input: texts,
       encoding_format: 'float',
@@ -53,7 +83,9 @@ export async function generateChatCompletion(
   }
 ): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    // Use new client for key rotation
+    const client = createOpenAIClient()
+    const response = await client.chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages,
       temperature: options?.temperature ?? 0.7,
@@ -79,7 +111,9 @@ export async function streamChatCompletion(
   }
 ) {
   try {
-    const stream = await openai.chat.completions.create({
+    // Use new client for key rotation
+    const client = createOpenAIClient()
+    const stream = await client.chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages,
       temperature: options?.temperature ?? 0.7,

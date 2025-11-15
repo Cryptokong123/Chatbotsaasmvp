@@ -75,74 +75,135 @@ export function convertActionsToFunctions(actions: BotAction[]): OpenAI.Chat.Cha
 }
 
 /**
- * Execute a webhook action
+ * Sleep for a specified duration
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Determine if an error is retryable
+ */
+function isRetryableError(status?: number, error?: string): boolean {
+  // Retry on network errors or 5xx server errors or 429 rate limit
+  if (!status) return true // Network error
+  if (status >= 500) return true // Server error
+  if (status === 429) return true // Rate limit
+  if (status === 408) return true // Request timeout
+  return false
+}
+
+/**
+ * Execute a webhook action with retry logic and exponential backoff
  */
 export async function executeWebhook(
   action: BotAction,
-  parameters: Record<string, any>
+  parameters: Record<string, any>,
+  maxRetries = 3
 ): Promise<{
   success: boolean
   response?: any
   error?: string
   httpStatus?: number
   executionTimeMs?: number
+  retries?: number
 }> {
   const startTime = Date.now()
+  let lastError: string | undefined
+  let lastStatus: number | undefined
+  let retries = 0
 
-  try {
-    // Build request body/query based on method
-    const options: RequestInit = {
-      method: action.method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...action.headers,
-      },
-    }
-
-    let url = action.webhook_url
-
-    if (action.method === 'GET') {
-      // Append parameters as query string
-      const queryString = new URLSearchParams(
-        Object.entries(parameters).map(([k, v]) => [k, String(v)])
-      ).toString()
-      url = `${url}?${queryString}`
-    } else {
-      // Include parameters in body
-      options.body = JSON.stringify(parameters)
-    }
-
-    const response = await fetch(url, options)
-    const executionTimeMs = Date.now() - startTime
-
-    let responseData
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      responseData = await response.json()
-    } catch {
-      responseData = await response.text()
-    }
+      // Build request body/query based on method
+      const options: RequestInit = {
+        method: action.method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...action.headers,
+        },
+      }
 
-    if (!response.ok) {
+      let url = action.webhook_url
+
+      if (action.method === 'GET') {
+        // Append parameters as query string
+        const queryString = new URLSearchParams(
+          Object.entries(parameters).map(([k, v]) => [k, String(v)])
+        ).toString()
+        url = `${url}?${queryString}`
+      } else {
+        // Include parameters in body
+        options.body = JSON.stringify(parameters)
+      }
+
+      const response = await fetch(url, options)
+      const executionTimeMs = Date.now() - startTime
+
+      let responseData
+      try {
+        responseData = await response.json()
+      } catch {
+        responseData = await response.text()
+      }
+
+      if (!response.ok) {
+        lastStatus = response.status
+        lastError = `Webhook returned ${response.status}: ${response.statusText}`
+
+        // Check if we should retry
+        if (attempt < maxRetries && isRetryableError(response.status)) {
+          retries++
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt) * 1000
+          await sleep(delay)
+          continue // Retry
+        }
+
+        return {
+          success: false,
+          error: lastError,
+          httpStatus: response.status,
+          executionTimeMs,
+          retries,
+        }
+      }
+
       return {
-        success: false,
-        error: `Webhook returned ${response.status}: ${response.statusText}`,
+        success: true,
+        response: responseData,
         httpStatus: response.status,
         executionTimeMs,
+        retries,
+      }
+    } catch (error: any) {
+      lastError = error.message || 'Failed to execute webhook'
+
+      // Check if we should retry on network errors
+      if (attempt < maxRetries) {
+        retries++
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.pow(2, attempt) * 1000
+        await sleep(delay)
+        continue // Retry
+      }
+
+      return {
+        success: false,
+        error: lastError,
+        executionTimeMs: Date.now() - startTime,
+        retries,
       }
     }
+  }
 
-    return {
-      success: true,
-      response: responseData,
-      httpStatus: response.status,
-      executionTimeMs,
-    }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || 'Failed to execute webhook',
-      executionTimeMs: Date.now() - startTime,
-    }
+  // Should never reach here, but TypeScript needs it
+  return {
+    success: false,
+    error: lastError || 'Unknown error',
+    httpStatus: lastStatus,
+    executionTimeMs: Date.now() - startTime,
+    retries,
   }
 }
 
