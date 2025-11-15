@@ -32,7 +32,11 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  // Code splitting
+  // Performance optimizations
+  swcMinify: true,
+  productionBrowserSourceMaps: false,
+
+  // Code splitting and optimization
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.optimization.splitChunks = {
@@ -40,6 +44,7 @@ const nextConfig = {
         cacheGroups: {
           default: false,
           vendors: false,
+          // React framework
           framework: {
             chunks: 'all',
             name: 'framework',
@@ -47,10 +52,50 @@ const nextConfig = {
             priority: 40,
             enforce: true,
           },
+          // Common vendor libraries
+          lib: {
+            test: /[\\/]node_modules[\\/]/,
+            name(module) {
+              const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)[1]
+              return `npm.${packageName.replace('@', '')}`
+            },
+            priority: 30,
+            minChunks: 1,
+            reuseExistingChunk: true,
+          },
+          // UI components (Radix, Recharts, etc.)
+          ui: {
+            test: /[\\/]node_modules[\\/](@radix-ui|recharts|lucide-react)[\\/]/,
+            name: 'ui-libraries',
+            priority: 35,
+            reuseExistingChunk: true,
+          },
+          // Common components
+          commons: {
+            name: 'commons',
+            minChunks: 2,
+            priority: 20,
+            reuseExistingChunk: true,
+          },
         },
       }
     }
+
+    // Optimize module resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Reduce bundle size by using ESM versions
+      'date-fns': 'date-fns/esm',
+    }
+
     return config
+  },
+
+  // Experimental features for better performance
+  experimental: {
+    ...nextConfig.experimental,
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 }
 
