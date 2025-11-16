@@ -29,6 +29,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 })
 
 const migrations = [
+  'create_agents_infrastructure.sql',
   'add_pre_chat_forms.sql',
   'enhance_conversation_flows.sql',
 ]
