@@ -405,6 +405,24 @@ export default function BotDetailPage() {
 
               <Button
                 variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/flows`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">🔀</span>
+                <span className="text-sm">Conversation Flows</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/bots/${botId}/forms`)}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+              >
+                <span className="text-2xl">📝</span>
+                <span className="text-sm">Pre-Chat Forms</span>
+              </Button>
+
+              <Button
+                variant="outline"
                 onClick={() => router.push(`/dashboard/bots/${botId}/test`)}
                 className="h-auto py-4 flex flex-col items-center gap-2"
               >
