@@ -180,10 +180,36 @@ export function PreChatFormBuilder({
     }
   }
 
+  const [showLivePreview, setShowLivePreview] = useState(true)
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Form Settings */}
-      <div className="lg:col-span-1 space-y-4">
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 pb-4 border-b">
+        <div>
+          <h2 className="text-2xl font-bold">{form.name || 'Form Builder'}</h2>
+          <p className="text-sm text-muted-foreground">
+            Design your pre-chat form with live preview
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowLivePreview(!showLivePreview)}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            {showLivePreview ? 'Hide' : 'Show'} Preview
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Form'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className={`grid gap-6 flex-1 overflow-hidden ${showLivePreview ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {/* Form Settings */}
+        <div className="space-y-4 overflow-y-auto pr-2">
         <Card>
           <CardHeader>
             <CardTitle>Form Settings</CardTitle>
@@ -403,26 +429,18 @@ export function PreChatFormBuilder({
       </div>
 
       {/* Fields List */}
-      <div className="lg:col-span-2 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 overflow-y-auto pr-2">
+        <div className="flex items-center justify-between sticky top-0 bg-background pb-2 z-10">
           <div>
             <h3 className="text-lg font-semibold">Form Fields</h3>
             <p className="text-sm text-muted-foreground">
-              Drag to reorder, click to edit
+              Click to edit, drag to reorder
             </p>
           </div>
-          <div className="flex gap-2">
-            {onPreview && (
-              <Button variant="outline" onClick={() => onPreview(form)}>
-                <Eye className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-            )}
-            <Button onClick={addField}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Field
-            </Button>
-          </div>
+          <Button onClick={addField} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Field
+          </Button>
         </div>
 
         {form.fields.length === 0 ? (
@@ -502,12 +520,198 @@ export function PreChatFormBuilder({
             ))}
           </div>
         )}
+      </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Form'}
-          </Button>
+      {/* Live Preview Panel */}
+      {showLivePreview && (
+        <div className="border-l pl-6 overflow-y-auto">
+          <div className="sticky top-0 bg-background pb-4 mb-4 border-b">
+            <h3 className="text-lg font-semibold">Live Preview</h3>
+            <p className="text-sm text-muted-foreground">
+              See how your form will look to users
+            </p>
+          </div>
+
+          <Card>
+            <CardContent className="p-6">
+              {/* Welcome Text */}
+              {form.welcome_text && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm">{form.welcome_text}</p>
+                </div>
+              )}
+
+              {/* Form Fields Preview */}
+              {form.fields.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No fields yet</p>
+                  <p className="text-xs mt-1">Add fields to see them here</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {form.fields.map((field) => (
+                    <div key={field.id} className="space-y-1.5">
+                      <Label>
+                        {field.field_label}
+                        {field.is_required && (
+                          <span className="text-red-500 ml-1">*</span>
+                        )}
+                      </Label>
+
+                      {/* Render different field types */}
+                      {field.field_type === 'text' && (
+                        <Input
+                          placeholder={field.placeholder}
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      )}
+
+                      {field.field_type === 'email' && (
+                        <Input
+                          type="email"
+                          placeholder={field.placeholder || 'email@example.com'}
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      )}
+
+                      {field.field_type === 'phone' && (
+                        <Input
+                          type="tel"
+                          placeholder={field.placeholder || '(555) 123-4567'}
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      )}
+
+                      {field.field_type === 'number' && (
+                        <Input
+                          type="number"
+                          placeholder={field.placeholder}
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      )}
+
+                      {field.field_type === 'textarea' && (
+                        <Textarea
+                          placeholder={field.placeholder}
+                          disabled
+                          className="bg-gray-50"
+                          rows={3}
+                        />
+                      )}
+
+                      {field.field_type === 'select' && (
+                        <Select disabled>
+                          <SelectTrigger className="bg-gray-50">
+                            <SelectValue
+                              placeholder={
+                                field.placeholder || 'Select an option'
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options?.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      {field.field_type === 'radio' && (
+                        <div className="space-y-2">
+                          {field.options?.map((option) => (
+                            <div key={option.value} className="flex items-center">
+                              <input
+                                type="radio"
+                                disabled
+                                className="mr-2"
+                                name={field.field_name}
+                              />
+                              <label className="text-sm">{option.label}</label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {field.field_type === 'checkbox' && (
+                        <div className="space-y-2">
+                          {field.options?.map((option) => (
+                            <div key={option.value} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                disabled
+                                className="mr-2"
+                              />
+                              <label className="text-sm">{option.label}</label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {field.field_type === 'date' && (
+                        <Input
+                          type="date"
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      )}
+
+                      {field.field_type === 'time' && (
+                        <Input
+                          type="time"
+                          disabled
+                          className="bg-gray-50"
+                        />
+                      )}
+
+                      {/* Help Text */}
+                      {field.help_text && (
+                        <p className="text-xs text-muted-foreground">
+                          {field.help_text}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Submit Button Preview */}
+                  <div className="pt-4">
+                    <Button className="w-full" disabled>
+                      {form.submit_button_text}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Form Status Indicators */}
+          <div className="mt-4 space-y-2 text-xs">
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span>Status:</span>
+              <span className={form.is_active ? 'text-green-600' : 'text-gray-500'}>
+                {form.is_active ? '✓ Active' : '○ Inactive'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span>Display:</span>
+              <span>
+                {form.show_on_load ? 'Show on Load' : 'Show on Demand'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span>Requirement:</span>
+              <span>
+                {form.required_to_chat ? 'Required to Chat' : 'Optional'}
+              </span>
+            </div>
+          </div>
         </div>
+      )}
       </div>
     </div>
   )
