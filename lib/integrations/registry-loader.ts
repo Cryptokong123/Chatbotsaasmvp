@@ -14,7 +14,7 @@ import { CopperAdapter } from './adapters/copper-adapter'
 import { DriftAdapter } from './adapters/drift-adapter'
 import { FreshchatAdapter } from './adapters/freshchat-adapter'
 import { FreshdeskAdapter } from './adapters/freshdesk-adapter'
-import { FreshSalesAdapter } from './adapters/freshsales-adapter'
+import { FreshsalesAdapter } from './adapters/freshsales-adapter'
 import { FreshserviceAdapter } from './adapters/freshservice-adapter'
 import { HubSpotAdapter } from './adapters/hubspot-adapter'
 import { InstagramAdapter } from './adapters/instagram-adapter'
@@ -2494,7 +2494,7 @@ export function loadAllIntegrations(registry?: IntegrationRegistry): Integration
     drift: DriftAdapter,
     freshchat: FreshchatAdapter,
     freshdesk: FreshdeskAdapter,
-    freshsales: FreshSalesAdapter,
+    freshsales: FreshsalesAdapter,
     freshservice: FreshserviceAdapter,
     hubspot: HubSpotAdapter,
     instagram: InstagramAdapter,

@@ -478,3 +478,14 @@ export function getBundleSavingsMessage(bundlePlan: BundlePlan): string {
 
   return `Save ${bundle.discount}% by bundling chatbots + agents for only $${bundle.price}/mo!`
 }
+
+// Export plan arrays for pricing pages
+export const agentPlans = Object.entries(AGENT_PLAN_FEATURES).map(([id, features]) => ({
+  id: id as AgentPlan,
+  ...features,
+}))
+
+export const bundlePlans = Object.entries(BUNDLE_PLAN_FEATURES).map(([id, features]) => ({
+  id: id as BundlePlan,
+  ...features,
+}))

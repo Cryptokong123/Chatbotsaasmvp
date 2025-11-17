@@ -1,5 +1,5 @@
 // Document parsing utilities for PDF and DOCX files
-import pdf from 'pdf-parse'
+import * as pdfParse from 'pdf-parse'
 import mammoth from 'mammoth'
 
 export interface ParsedDocument {
@@ -14,7 +14,7 @@ export interface ParsedDocument {
 
 export async function parsePDF(buffer: Buffer, fileName: string): Promise<ParsedDocument> {
   try {
-    const data = await pdf(buffer)
+    const data = await pdfParse(buffer)
 
     return {
       text: data.text,
