@@ -1,0 +1,28 @@
+
+> chatforge-ai@0.1.0 build
+> next build
+
+   ▲ Next.js 14.1.0
+   - Experiments (use at your own risk):
+     · optimizeCss
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/api/webhooks/agents/[agentId]/[platform]/route.ts:140:54
+Type error: No overload matches this call.
+  Overload 3 of 3, '(body: ChatCompletionCreateParamsBase, options?: RequestOptions<unknown>): APIPromise<ChatCompletion | Stream<ChatCompletionChunk>>', gave the following error.
+    Type '{ role: string; content: any; }' is not assignable to type 'ChatCompletionMessageParam'.
+      Property 'name' is missing in type '{ role: string; content: any; }' but required in type 'ChatCompletionFunctionMessageParam'.
+  Overload 3 of 3, '(body: ChatCompletionCreateParamsBase, options?: RequestOptions<unknown>): APIPromise<ChatCompletion | Stream<ChatCompletionChunk>>', gave the following error.
+    Type 'string' is not assignable to type '"function" | "user" | "developer" | "system" | "assistant" | "tool"'.
+
+[0m [90m 138 |[39m     [90m// Generate AI response[39m[0m
+[0m [90m 139 |[39m     [36mconst[39m startTime [33m=[39m [33mDate[39m[33m.[39mnow()[0m
+[0m[31m[1m>[22m[39m[90m 140 |[39m     [36mconst[39m completion [33m=[39m [36mawait[39m openai[33m.[39mchat[33m.[39mcompletions[33m.[39mcreate({[0m
+[0m [90m     |[39m                                                      [31m[1m^[22m[39m[0m
+[0m [90m 141 |[39m       model[33m:[39m [32m'gpt-4'[39m[33m,[39m[0m
+[0m [90m 142 |[39m       messages[33m:[39m [[0m
+[0m [90m 143 |[39m         {[0m

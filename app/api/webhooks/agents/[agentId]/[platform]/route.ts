@@ -61,10 +61,12 @@ export async function POST(
     // Initialize platform adapter
     let adapter
     if (platform === 'telegram') {
-      adapter = new TelegramAdapter()
-      await adapter.connect({
-        telegram: platformIntegration.credentials,
-      })
+      adapter = new TelegramAdapter(
+        'telegram',
+        platformIntegration.credentials,
+        platformIntegration.config || {}
+      )
+      await adapter.connect()
     } else {
       return NextResponse.json({ error: `Platform ${platform} not yet implemented` }, {
 status: 400 })
@@ -85,7 +87,7 @@ status: 400 })
 
     // Create new conversation if doesn't exist
     if (!conversation.data) {
-      const { data: newConversation } = await supabase
+      conversation = await supabase
         .from('agent_conversations')
         .insert({
           agent_id: agentId,
@@ -97,8 +99,6 @@ status: 400 })
         })
         .select()
         .single()
-
-      conversation = { data: newConversation }
     }
 
     const conversationId = conversation.data?.id
@@ -131,8 +131,8 @@ status: 400 })
 
     // Build conversation context for AI
     const conversationHistory = messages?.map((msg) => ({
-      role: msg.sender_type === 'user' ? 'user' : 'assistant',
-      content: msg.content,
+      role: (msg.sender_type === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: msg.content as string,
     })) || []
 
     // Generate AI response

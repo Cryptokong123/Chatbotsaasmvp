@@ -1,0 +1,28 @@
+
+> chatforge-ai@0.1.0 build
+> next build
+
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 14.1.0
+   - Experiments (use at your own risk):
+     · optimizeCss
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/api/webhooks/agents/[agentId]/[platform]/route.ts:64:17
+Type error: Expected 2-3 arguments, but got 0.
+
+[0m [90m 62 |[39m     [36mlet[39m adapter[0m
+[0m [90m 63 |[39m     [36mif[39m (platform [33m===[39m [32m'telegram'[39m) {[0m
+[0m[31m[1m>[22m[39m[90m 64 |[39m       adapter [33m=[39m [36mnew[39m [33mTelegramAdapter[39m()[0m
+[0m [90m    |[39m                 [31m[1m^[22m[39m[0m
+[0m [90m 65 |[39m       [36mawait[39m adapter[33m.[39mconnect({[0m
+[0m [90m 66 |[39m         telegram[33m:[39m platformIntegration[33m.[39mcredentials[33m,[39m[0m
+[0m [90m 67 |[39m       })[0m

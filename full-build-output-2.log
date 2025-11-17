@@ -1,0 +1,24 @@
+
+> chatforge-ai@0.1.0 build
+> next build
+
+   ▲ Next.js 14.1.0
+   - Experiments (use at your own risk):
+     · optimizeCss
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/api/webhooks/agents/[agentId]/[platform]/route.ts:103:7
+Type error: Type '{ data: any; }' is not assignable to type 'PostgrestSingleResponse<any>'.
+  Type '{ data: any; }' is missing the following properties from type 'PostgrestResponseSuccess<any>': error, count, status, statusText
+
+[0m [90m 101 |[39m         [33m.[39msingle()[0m
+[0m [90m 102 |[39m[0m
+[0m[31m[1m>[22m[39m[90m 103 |[39m       conversation [33m=[39m { data[33m:[39m newConversation }[0m
+[0m [90m     |[39m       [31m[1m^[22m[39m[0m
+[0m [90m 104 |[39m     }[0m
+[0m [90m 105 |[39m[0m
+[0m [90m 106 |[39m     [36mconst[39m conversationId [33m=[39m conversation[33m.[39mdata[33m?[39m[33m.[39mid[0m
