@@ -47,6 +47,56 @@ interface MessengerPersona {
   profile_picture_url: string
 }
 
+interface MessengerLabel {
+  id?: string
+  name: string
+}
+
+interface MessengerInsights {
+  name: string
+  period: 'day' | 'week' | 'days_28'
+  values: Array<{ value: number; end_time: string }>
+  title?: string
+  description?: string
+}
+
+interface MessengerBroadcast {
+  message_creative_id: string
+  notification_type?: 'REGULAR' | 'SILENT_PUSH' | 'NO_PUSH'
+  tag?: string
+}
+
+interface MessengerMessageCreative {
+  messages: any[]
+}
+
+interface MessengerOneTimeNotification {
+  title: string
+  payload: string
+}
+
+interface MessengerChatPlugin {
+  domains: string[]
+  greeting_dialog_display?: 'show' | 'hide' | 'fade'
+  greeting_dialog_delay?: number
+  locale?: string
+  logged_in_greeting?: string
+  logged_out_greeting?: string
+  theme_color?: string
+}
+
+interface MessengerSavedReply {
+  id?: string
+  title: string
+  message: string
+  category?: string
+  image?: string
+}
+
+interface MessengerPrivateReply {
+  message: string
+}
+
 export class MessengerAdapter extends BaseIntegrationAdapter {
   private pageAccessToken?: string
   private appSecret?: string
@@ -793,5 +843,1155 @@ export class MessengerAdapter extends BaseIntegrationAdapter {
     }
 
     return null
+  }
+
+  // ============================================================================
+  // SENDER ACTIONS
+  // ============================================================================
+
+  async sendTypingIndicator(recipientId: string, action: 'typing_on' | 'typing_off' | 'mark_seen'): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/messages?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: recipientId },
+              sender_action: action,
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      this.log('error', 'Failed to send sender action', error)
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async markSeen(recipientId: string): Promise<IntegrationResponse<void>> {
+    return this.sendTypingIndicator(recipientId, 'mark_seen')
+  }
+
+  async startTyping(recipientId: string): Promise<IntegrationResponse<void>> {
+    return this.sendTypingIndicator(recipientId, 'typing_on')
+  }
+
+  async stopTyping(recipientId: string): Promise<IntegrationResponse<void>> {
+    return this.sendTypingIndicator(recipientId, 'typing_off')
+  }
+
+  // ============================================================================
+  // LABELS / TAGS
+  // ============================================================================
+
+  async createLabel(name: string): Promise<IntegrationResponse<MessengerLabel>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/custom_labels?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: { id: result.data.id, name },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async getLabels(): Promise<IntegrationResponse<MessengerLabel[]>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/custom_labels?fields=name&access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async deleteLabel(labelId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${labelId}?access_token=${this.pageAccessToken}`,
+          { method: 'DELETE' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async addLabelToUser(userId: string, labelId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${labelId}/label?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: userId }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async removeLabelFromUser(userId: string, labelId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${labelId}/label?access_token=${this.pageAccessToken}`,
+          {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: userId }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async getUserLabels(userId: string): Promise<IntegrationResponse<MessengerLabel[]>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${userId}/custom_labels?access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // BROADCAST MESSAGES
+  // ============================================================================
+
+  async createMessageCreative(messages: any[]): Promise<IntegrationResponse<{ id: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/message_creatives?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: { id: result.data.message_creative_id },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async sendBroadcast(params: {
+    messageCreativeId: string
+    customLabelId?: string
+    notificationType?: 'REGULAR' | 'SILENT_PUSH' | 'NO_PUSH'
+    tag?: string
+  }): Promise<IntegrationResponse<{ broadcastId: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const payload: any = {
+        message_creative_id: params.messageCreativeId,
+        notification_type: params.notificationType || 'REGULAR',
+      }
+
+      if (params.customLabelId) {
+        payload.custom_label_id = params.customLabelId
+      }
+
+      if (params.tag) {
+        payload.tag = params.tag
+      }
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/broadcast_messages?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: { broadcastId: result.data.broadcast_id },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async getBroadcastMetrics(broadcastId: string): Promise<IntegrationResponse<any>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${broadcastId}/insights/messages_sent?access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // ONE-TIME NOTIFICATION
+  // ============================================================================
+
+  async requestOneTimeNotification(params: {
+    recipientId: string
+    title: string
+    payload: string
+  }): Promise<IntegrationResponse<{ messageId: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/messages?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: params.recipientId },
+              message: {
+                attachment: {
+                  type: 'template',
+                  payload: {
+                    template_type: 'one_time_notif_req',
+                    title: params.title,
+                    payload: params.payload,
+                  },
+                },
+              },
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: { messageId: result.data.message_id },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async sendOneTimeNotification(params: {
+    recipientId: string
+    oneTimeNotifToken: string
+    text?: string
+    attachment?: any
+  }): Promise<IntegrationResponse<{ messageId: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const message: any = {}
+      if (params.text) message.text = params.text
+      if (params.attachment) message.attachment = params.attachment
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/messages?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: {
+                one_time_notif_token: params.oneTimeNotifToken,
+              },
+              message,
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: { messageId: result.data.message_id },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // CHAT PLUGIN
+  // ============================================================================
+
+  async configureChatPlugin(config: MessengerChatPlugin): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/messenger_profile?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              whitelisted_domains: config.domains,
+              ...config,
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // SAVED REPLIES
+  // ============================================================================
+
+  async createSavedReply(reply: Omit<MessengerSavedReply, 'id'>): Promise<IntegrationResponse<MessengerSavedReply>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/saved_replies?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reply),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: { ...reply, id: result.data.id },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async getSavedReplies(): Promise<IntegrationResponse<MessengerSavedReply[]>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/saved_replies?access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async deleteSavedReply(replyId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${replyId}?access_token=${this.pageAccessToken}`,
+          { method: 'DELETE' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // INSIGHTS & ANALYTICS
+  // ============================================================================
+
+  async getPageInsights(metrics: string[], period: 'day' | 'week' | 'days_28' = 'day'): Promise<IntegrationResponse<MessengerInsights[]>> {
+    try {
+      await this.ensureConnected()
+
+      const metricsList = metrics.join(',')
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/insights?metric=${metricsList}&period=${period}&access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async getConversationMetrics(): Promise<IntegrationResponse<any>> {
+    const metrics = [
+      'page_messages_active_threads_unique',
+      'page_messages_blocked_conversations_unique',
+      'page_messages_reported_conversations_unique',
+      'page_messages_new_conversations_unique',
+    ]
+
+    return this.getPageInsights(metrics)
+  }
+
+  async getMessageMetrics(): Promise<IntegrationResponse<any>> {
+    const metrics = [
+      'page_messages_total_messaging_connections',
+      'page_messages_new_messaging_connections',
+    ]
+
+    return this.getPageInsights(metrics)
+  }
+
+  // ============================================================================
+  // USER MANAGEMENT
+  // ============================================================================
+
+  async blockUser(userId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/blocked?user=${userId}&access_token=${this.pageAccessToken}`,
+          { method: 'POST' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async unblockUser(userId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/blocked?user=${userId}&access_token=${this.pageAccessToken}`,
+          { method: 'DELETE' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE REPLIES (for public posts)
+  // ============================================================================
+
+  async sendPrivateReply(params: {
+    commentId: string
+    message: string
+  }): Promise<IntegrationResponse<{ messageId: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${params.commentId}/private_replies?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: params.message }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: { messageId: result.data.id },
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // MESSAGE REACTIONS
+  // ============================================================================
+
+  async reactToMessage(messageId: string, reaction: 'smile' | 'angry' | 'sad' | 'wow' | 'love' | 'like' | 'dislike'): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/messages?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: messageId },
+              sender_action: 'react',
+              reaction,
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async unreactToMessage(messageId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/messages?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: { id: messageId },
+              sender_action: 'unreact',
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // CONVERSATIONS
+  // ============================================================================
+
+  async getConversation(conversationId: string, fields?: string[]): Promise<IntegrationResponse<any>> {
+    try {
+      await this.ensureConnected()
+
+      const fieldsList = fields?.join(',') || 'id,link,updated_time,message_count'
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${conversationId}?fields=${fieldsList}&access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async getConversationMessages(conversationId: string, limit: number = 25): Promise<IntegrationResponse<any[]>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${conversationId}/messages?limit=${limit}&access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async listConversations(params?: {
+    limit?: number
+    folder?: 'inbox' | 'other' | 'done'
+  }): Promise<IntegrationResponse<any[]>> {
+    try {
+      await this.ensureConnected()
+
+      const query = new URLSearchParams()
+      query.set('limit', (params?.limit || 25).toString())
+      if (params?.folder) query.set('folder', params.folder)
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/conversations?${query.toString()}&access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  // ============================================================================
+  // PAGE SETTINGS
+  // ============================================================================
+
+  async updatePageSettings(settings: {
+    call_to_actions?: any[]
+    business_hours?: {
+      timezone: string
+      hours: Array<{
+        day: number
+        open_time: string
+        close_time: string
+      }>
+    }
+    away_message?: {
+      enabled: boolean
+      message: string
+    }
+  }): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/messenger_profile?access_token=${this.pageAccessToken}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async deletePersona(personaId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/${personaId}?access_token=${this.pageAccessToken}`,
+          { method: 'DELETE' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return {
+        success: true,
+        data: undefined,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
+  }
+
+  async listPersonas(): Promise<IntegrationResponse<MessengerPersona[]>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.baseUrl}/${this.apiVersion}/me/personas?access_token=${this.pageAccessToken}`,
+          { method: 'GET' }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          error: result.error,
+        }
+      }
+
+      return {
+        success: true,
+        data: result.data.data,
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: this.formatError(error),
+      }
+    }
   }
 }

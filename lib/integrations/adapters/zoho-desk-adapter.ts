@@ -156,6 +156,118 @@ export interface ZohoDeskProduct {
   createdTime?: string
 }
 
+export interface ZohoDeskTimeEntry {
+  id?: string
+  ticketId?: string
+  agentId?: string
+  executedTime: string
+  minutesSpent: number
+  costPerHour?: number
+  description?: string
+  createdTime?: string
+}
+
+export interface ZohoDeskTag {
+  id?: string
+  name: string
+  count?: number
+}
+
+export interface ZohoDeskSLA {
+  id?: string
+  name: string
+  description?: string
+  isDefault?: boolean
+  targets?: Array<{
+    targetType: 'RESPONSE' | 'RESOLUTION'
+    escalationLevels: Array<{
+      level: number
+      timeInMins: number
+    }>
+  }>
+}
+
+export interface ZohoDeskActivity {
+  id?: string
+  actor?: string
+  action: string
+  eventTime?: string
+  description?: string
+  ticketId?: string
+}
+
+export interface ZohoDeskView {
+  id?: string
+  name: string
+  criteria?: string
+  sortBy?: string
+  fields?: string[]
+  isDefault?: boolean
+  createdTime?: string
+}
+
+export interface ZohoDeskMacro {
+  id?: string
+  name: string
+  isActive?: boolean
+  actions?: Array<{
+    actionType: string
+    fieldName?: string
+    fieldValue?: any
+  }>
+  departmentId?: string
+  createdTime?: string
+}
+
+export interface ZohoDeskEmailTemplate {
+  id?: string
+  name: string
+  subject?: string
+  content?: string
+  isDefault?: boolean
+  departmentId?: string
+  createdTime?: string
+}
+
+export interface ZohoDeskTeam {
+  id?: string
+  name: string
+  description?: string
+  agentIds?: string[]
+  createdTime?: string
+}
+
+export interface ZohoDeskApproval {
+  id?: string
+  ticketId?: string
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED'
+  approvers?: string[]
+  comments?: string
+  createdTime?: string
+}
+
+export interface ZohoDeskChatVote {
+  up?: number
+  down?: number
+}
+
+export interface ZohoDeskRating {
+  id?: string
+  ticketId?: string
+  rating?: number
+  comment?: string
+  createdTime?: string
+}
+
+export interface ZohoDeskWebhook {
+  id?: string
+  url: string
+  name: string
+  events: string[]
+  isActive?: boolean
+  createdTime?: string
+}
+
 export class ZohoDeskAdapter extends BaseIntegrationAdapter {
   private orgId?: string
   private accessToken?: string
@@ -810,6 +922,732 @@ export class ZohoDeskAdapter extends BaseIntegrationAdapter {
       await this.ensureConnected()
       const result = await this.makeRequest(async () => {
         const response = await fetch(`${this.baseUrl}/articles/search?searchStr=${encodeURIComponent(searchStr)}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async createArticle(article: Partial<ZohoDeskArticle>): Promise<IntegrationResponse<ZohoDeskArticle>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/articles`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(article),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateArticle(articleId: string, updates: Partial<ZohoDeskArticle>): Promise<IntegrationResponse<ZohoDeskArticle>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/articles/${articleId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify(updates),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteArticle(articleId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/articles/${articleId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Time Entries
+  // ===========================
+
+  async addTimeEntry(ticketId: string, timeEntry: Partial<ZohoDeskTimeEntry>): Promise<IntegrationResponse<ZohoDeskTimeEntry>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/timeEntry`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(timeEntry),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTicketTimeEntries(ticketId: string): Promise<IntegrationResponse<{ data: ZohoDeskTimeEntry[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/timeEntry`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteTimeEntry(ticketId: string, timeEntryId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/timeEntry/${timeEntryId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Tags
+  // ===========================
+
+  async listTags(): Promise<IntegrationResponse<{ data: ZohoDeskTag[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tags`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async addTagsToTicket(ticketId: string, tagNames: string[]): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/tags`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ tags: tagNames }),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async removeTagFromTicket(ticketId: string, tagName: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/tags/${encodeURIComponent(tagName)}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // SLAs
+  // ===========================
+
+  async listSLAs(): Promise<IntegrationResponse<{ data: ZohoDeskSLA[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/slas`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getSLA(slaId: string): Promise<IntegrationResponse<ZohoDeskSLA>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/slas/${slaId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Activities
+  // ===========================
+
+  async getTicketActivities(ticketId: string): Promise<IntegrationResponse<{ data: ZohoDeskActivity[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/activities`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTicketHistory(ticketId: string): Promise<IntegrationResponse<{ data: any[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/history`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Views
+  // ===========================
+
+  async listViews(): Promise<IntegrationResponse<{ data: ZohoDeskView[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/views`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getViewTickets(viewId: string, params?: { limit?: number; from?: number }): Promise<IntegrationResponse<{ data: ZohoDeskTicket[] }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.limit) query.set('limit', params.limit.toString())
+      if (params?.from) query.set('from', params.from.toString())
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/views/${viewId}/tickets${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Macros
+  // ===========================
+
+  async listMacros(): Promise<IntegrationResponse<{ data: ZohoDeskMacro[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/macros`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async applyMacro(ticketId: string, macroId: string): Promise<IntegrationResponse<ZohoDeskTicket>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/runMacro/${macroId}`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Email Templates
+  // ===========================
+
+  async listEmailTemplates(departmentId?: string): Promise<IntegrationResponse<{ data: ZohoDeskEmailTemplate[] }>> {
+    try {
+      await this.ensureConnected()
+      const query = departmentId ? `?departmentId=${departmentId}` : ''
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/emailTemplates${query}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getEmailTemplate(templateId: string): Promise<IntegrationResponse<ZohoDeskEmailTemplate>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/emailTemplates/${templateId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Teams
+  // ===========================
+
+  async listTeams(): Promise<IntegrationResponse<{ data: ZohoDeskTeam[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/teams`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTeam(teamId: string): Promise<IntegrationResponse<ZohoDeskTeam>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/teams/${teamId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Approvals
+  // ===========================
+
+  async requestApproval(ticketId: string, params: { approverIds: string[]; comments?: string }): Promise<IntegrationResponse<ZohoDeskApproval>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/approvals`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(params),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTicketApprovals(ticketId: string): Promise<IntegrationResponse<{ data: ZohoDeskApproval[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/approvals`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateApproval(ticketId: string, approvalId: string, status: 'APPROVED' | 'REJECTED', comments?: string): Promise<IntegrationResponse<ZohoDeskApproval>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/approvals/${approvalId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ status, comments }),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Satisfaction Ratings
+  // ===========================
+
+  async getTicketRating(ticketId: string): Promise<IntegrationResponse<ZohoDeskRating>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/rating`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async addTicketRating(ticketId: string, rating: { rating: number; comment?: string }): Promise<IntegrationResponse<ZohoDeskRating>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/rating`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(rating),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Attachments
+  // ===========================
+
+  async uploadAttachment(ticketId: string, file: { filename: string; content: string | Buffer }): Promise<IntegrationResponse<ZohoDeskAttachment>> {
+    try {
+      await this.ensureConnected()
+      const formData = new FormData()
+      const blob = typeof file.content === 'string' ? new Blob([file.content]) : new Blob([file.content])
+      formData.append('file', blob, file.filename)
+
+      const result = await this.makeRequest(async () => {
+        const headers = {
+          'Authorization': this.getHeaders()['Authorization'],
+          'orgId': this.orgId!,
+        }
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/attachments`, {
+          method: 'POST',
+          headers,
+          body: formData,
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTicketAttachments(ticketId: string): Promise<IntegrationResponse<{ data: ZohoDeskAttachment[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/attachments`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteAttachment(ticketId: string, attachmentId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tickets/${ticketId}/attachments/${attachmentId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Webhooks
+  // ===========================
+
+  async createWebhook(webhook: Partial<ZohoDeskWebhook>): Promise<IntegrationResponse<ZohoDeskWebhook>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(webhook),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listWebhooks(): Promise<IntegrationResponse<{ data: ZohoDeskWebhook[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateWebhook(webhookId: string, updates: Partial<ZohoDeskWebhook>): Promise<IntegrationResponse<ZohoDeskWebhook>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks/${webhookId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify(updates),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteWebhook(webhookId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks/${webhookId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Update Task
+  // ===========================
+
+  async updateTask(taskId: string, updates: Partial<ZohoDeskTask>): Promise<IntegrationResponse<ZohoDeskTask>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify(updates),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteTask(taskId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTask(taskId: string): Promise<IntegrationResponse<ZohoDeskTask>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tasks/${taskId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Update Product
+  // ===========================
+
+  async updateProduct(productId: string, updates: Partial<ZohoDeskProduct>): Promise<IntegrationResponse<ZohoDeskProduct>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/products/${productId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify(updates),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteProduct(productId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/products/${productId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getProduct(productId: string): Promise<IntegrationResponse<ZohoDeskProduct>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/products/${productId}`, {
           headers: this.getHeaders(),
         })
         if (!response.ok) throw new Error(`Zoho Desk API error: ${response.status}`)

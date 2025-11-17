@@ -261,6 +261,135 @@ export interface MailchimpReport {
   }
 }
 
+export interface MailchimpMergeField {
+  merge_id?: number
+  tag: string
+  name: string
+  type: 'text' | 'number' | 'address' | 'phone' | 'date' | 'url' | 'imageurl' | 'radio' | 'dropdown' | 'birthday' | 'zip'
+  required?: boolean
+  default_value?: string
+  public?: boolean
+  display_order?: number
+  options?: {
+    default_country?: number
+    phone_format?: string
+    date_format?: string
+    choices?: string[]
+    size?: number
+  }
+  help_text?: string
+  list_id?: string
+}
+
+export interface MailchimpInterestCategory {
+  list_id?: string
+  id?: string
+  title: string
+  display_order?: number
+  type: 'checkboxes' | 'dropdown' | 'radio' | 'hidden'
+}
+
+export interface MailchimpInterest {
+  category_id?: string
+  list_id?: string
+  id?: string
+  name: string
+  subscriber_count?: number
+  display_order?: number
+}
+
+export interface MailchimpMemberActivity {
+  action: string
+  timestamp: string
+  type?: string
+  campaign_id?: string
+  title?: string
+  parent_campaign?: string
+}
+
+export interface MailchimpMemberNote {
+  id?: number
+  created_at?: string
+  created_by?: string
+  updated_at?: string
+  note: string
+  list_id?: string
+  email_id?: string
+}
+
+export interface MailchimpBatchOperation {
+  id?: string
+  status?: 'pending' | 'preprocessing' | 'started' | 'finalizing' | 'finished'
+  total_operations?: number
+  finished_operations?: number
+  errored_operations?: number
+  submitted_at?: string
+  completed_at?: string
+  response_body_url?: string
+}
+
+export interface MailchimpWebhook {
+  id?: string
+  url: string
+  events: {
+    subscribe?: boolean
+    unsubscribe?: boolean
+    profile?: boolean
+    cleaned?: boolean
+    upemail?: boolean
+    campaign?: boolean
+  }
+  sources: {
+    user?: boolean
+    admin?: boolean
+    api?: boolean
+  }
+  list_id?: string
+}
+
+export interface MailchimpLandingPage {
+  id?: string
+  name: string
+  title?: string
+  description?: string
+  template_id?: number
+  status?: 'published' | 'unpublished' | 'draft'
+  list_id?: string
+  store_id?: string
+  web_id?: number
+  created_at?: string
+  published_at?: string
+  unpublished_at?: string
+  updated_at?: string
+  url?: string
+  tracking?: {
+    opens?: boolean
+    html_clicks?: boolean
+    text_clicks?: boolean
+    goal_tracking?: boolean
+    ecomm360?: boolean
+    google_analytics?: string
+  }
+}
+
+export interface MailchimpFile {
+  id?: number
+  folder_id?: number
+  type?: string
+  name: string
+  full_size_url?: string
+  thumbnail_url?: string
+  size?: number
+  created_at?: string
+  created_by?: string
+}
+
+export interface MailchimpFolder {
+  id?: number
+  name: string
+  file_count?: number
+}
+
 export class MailchimpAdapter extends BaseIntegrationAdapter {
   private apiKey?: string
   private serverPrefix?: string
@@ -796,6 +925,752 @@ export class MailchimpAdapter extends BaseIntegrationAdapter {
       await this.ensureConnected()
       const result = await this.makeRequest(async () => {
         const response = await fetch(`${this.baseUrl}/lists/${listId}/segments`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateSegment(listId: string, segmentId: string, updates: Partial<MailchimpSegment>): Promise<IntegrationResponse<MailchimpSegment>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/segments/${segmentId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify(updates),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteSegment(listId: string, segmentId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/segments/${segmentId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async addSegmentMember(listId: string, segmentId: string, emailAddress: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/segments/${segmentId}/members`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ email_address: emailAddress }),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // MERGE FIELDS
+  // ============================================================================
+
+  async createMergeField(listId: string, mergeField: MailchimpMergeField): Promise<IntegrationResponse<MailchimpMergeField>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/merge-fields`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(mergeField),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listMergeFields(listId: string): Promise<IntegrationResponse<{ merge_fields: MailchimpMergeField[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/merge-fields`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateMergeField(listId: string, mergeId: string, updates: Partial<MailchimpMergeField>): Promise<IntegrationResponse<MailchimpMergeField>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/merge-fields/${mergeId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify(updates),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteMergeField(listId: string, mergeId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/merge-fields/${mergeId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // INTEREST CATEGORIES
+  // ============================================================================
+
+  async createInterestCategory(listId: string, category: MailchimpInterestCategory): Promise<IntegrationResponse<MailchimpInterestCategory>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/interest-categories`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(category),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listInterestCategories(listId: string): Promise<IntegrationResponse<{ categories: MailchimpInterestCategory[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/interest-categories`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async createInterest(listId: string, categoryId: string, interest: MailchimpInterest): Promise<IntegrationResponse<MailchimpInterest>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/interest-categories/${categoryId}/interests`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(interest),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listInterests(listId: string, categoryId: string): Promise<IntegrationResponse<{ interests: MailchimpInterest[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/interest-categories/${categoryId}/interests`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // MEMBER ACTIVITY & NOTES
+  // ============================================================================
+
+  async getMemberActivity(listId: string, subscriberHash: string): Promise<IntegrationResponse<{ activity: MailchimpMemberActivity[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/members/${subscriberHash}/activity`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async addMemberNote(listId: string, subscriberHash: string, note: string): Promise<IntegrationResponse<MailchimpMemberNote>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/members/${subscriberHash}/notes`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ note }),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listMemberNotes(listId: string, subscriberHash: string): Promise<IntegrationResponse<{ notes: MailchimpMemberNote[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/members/${subscriberHash}/notes`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async searchMembers(query: string, params?: { list_id?: string }): Promise<IntegrationResponse<{ exact_matches: { members: MailchimpMember[] }; full_search: { members: MailchimpMember[] } }>> {
+    try {
+      await this.ensureConnected()
+      const queryParams = new URLSearchParams({ query })
+      if (params?.list_id) queryParams.set('list_id', params.list_id)
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/search-members?${queryParams}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // TEMPLATES
+  // ============================================================================
+
+  async listTemplates(params?: { count?: number; offset?: number }): Promise<IntegrationResponse<{ templates: MailchimpTemplate[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.count) query.set('count', params.count.toString())
+      if (params?.offset) query.set('offset', params.offset.toString())
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/templates${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTemplate(templateId: string): Promise<IntegrationResponse<MailchimpTemplate>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/templates/${templateId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteTemplate(templateId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/templates/${templateId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // ADVANCED CAMPAIGN ACTIONS
+  // ============================================================================
+
+  async testCampaign(campaignId: string, testEmails: string[], sendType: 'html' | 'plaintext' = 'html'): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/campaigns/${campaignId}/actions/test`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ test_emails: testEmails, send_type: sendType }),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async pauseCampaign(campaignId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/campaigns/${campaignId}/actions/pause`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async resumeCampaign(campaignId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/campaigns/${campaignId}/actions/resume`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async replicateCampaign(campaignId: string): Promise<IntegrationResponse<MailchimpCampaign>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/campaigns/${campaignId}/actions/replicate`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async unscheduleCampaign(campaignId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/campaigns/${campaignId}/actions/unschedule`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async cancelCampaign(campaignId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/campaigns/${campaignId}/actions/cancel-send`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // BATCH OPERATIONS
+  // ============================================================================
+
+  async createBatchOperation(operations: any[]): Promise<IntegrationResponse<MailchimpBatchOperation>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/batches`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ operations }),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getBatchOperation(batchId: string): Promise<IntegrationResponse<MailchimpBatchOperation>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/batches/${batchId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listBatchOperations(): Promise<IntegrationResponse<{ batches: MailchimpBatchOperation[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/batches`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // WEBHOOKS
+  // ============================================================================
+
+  async createWebhook(listId: string, webhook: MailchimpWebhook): Promise<IntegrationResponse<MailchimpWebhook>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/webhooks`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(webhook),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listWebhooks(listId: string): Promise<IntegrationResponse<{ webhooks: MailchimpWebhook[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/webhooks`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteWebhook(listId: string, webhookId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/lists/${listId}/webhooks/${webhookId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // LANDING PAGES
+  // ============================================================================
+
+  async createLandingPage(landingPage: MailchimpLandingPage): Promise<IntegrationResponse<MailchimpLandingPage>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/landing-pages`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(landingPage),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listLandingPages(params?: { count?: number; offset?: number }): Promise<IntegrationResponse<{ landing_pages: MailchimpLandingPage[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.count) query.set('count', params.count.toString())
+      if (params?.offset) query.set('offset', params.offset.toString())
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/landing-pages${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getLandingPage(pageId: string): Promise<IntegrationResponse<MailchimpLandingPage>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/landing-pages/${pageId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async publishLandingPage(pageId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/landing-pages/${pageId}/actions/publish`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async unpublishLandingPage(pageId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/landing-pages/${pageId}/actions/unpublish`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteLandingPage(pageId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/landing-pages/${pageId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // FILE MANAGER
+  // ============================================================================
+
+  async uploadFile(file: { file_data: string; name: string; folder_id?: number }): Promise<IntegrationResponse<MailchimpFile>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/file-manager/files`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(file),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listFiles(params?: { count?: number; offset?: number }): Promise<IntegrationResponse<{ files: MailchimpFile[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.count) query.set('count', params.count.toString())
+      if (params?.offset) query.set('offset', params.offset.toString())
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/file-manager/files${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteFile(fileId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/file-manager/files/${fileId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return undefined
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async createFolder(name: string): Promise<IntegrationResponse<MailchimpFolder>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/file-manager/folders`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ name }),
+        })
+        if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listFolders(): Promise<IntegrationResponse<{ folders: MailchimpFolder[]; total_items: number }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/file-manager/folders`, {
           headers: this.getHeaders(),
         })
         if (!response.ok) throw new Error(`Mailchimp API error: ${response.status}`)

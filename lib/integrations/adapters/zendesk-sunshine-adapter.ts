@@ -102,6 +102,139 @@ export interface SunshineLimit {
   objects_per_type: number
 }
 
+export interface SunshineProfileType {
+  key: string
+  name: string
+  description?: string
+  icon?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface SunshineBulkOperation {
+  id?: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  operation: 'create' | 'update' | 'delete'
+  resource_type: 'profile' | 'object' | 'relationship'
+  total_count?: number
+  processed_count?: number
+  success_count?: number
+  error_count?: number
+  errors?: Array<{ index: number; message: string }>
+  created_at?: string
+  completed_at?: string
+}
+
+export interface SunshineSegment {
+  id?: string
+  name: string
+  description?: string
+  profile_type: string
+  conditions: {
+    all?: Array<{ field: string; operator: string; value: any }>
+    any?: Array<{ field: string; operator: string; value: any }>
+  }
+  count?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface SunshineTag {
+  id?: string
+  name: string
+  category?: string
+  color?: string
+  created_at?: string
+}
+
+export interface SunshineNote {
+  id?: string
+  profile_type: string
+  profile_identifier_type: string
+  profile_identifier_value: string
+  content: string
+  author_id?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface SunshineAttachment {
+  id?: string
+  filename: string
+  content_type: string
+  size: number
+  url?: string
+  inline?: boolean
+  created_at?: string
+}
+
+export interface SunshineActivity {
+  id?: string
+  type: string
+  actor_id?: string
+  target_type: string
+  target_id: string
+  action: string
+  description?: string
+  metadata?: Record<string, any>
+  created_at?: string
+}
+
+export interface SunshineProfileTimeline {
+  profile: SunshineProfile
+  events: SunshineEvent[]
+  activities: SunshineActivity[]
+  notes: SunshineNote[]
+  relationships: SunshineRelationship[]
+}
+
+export interface SunshineQueryBuilder {
+  field: string
+  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin' | 'contains' | 'startsWith' | 'endsWith'
+  value: any
+}
+
+export interface SunshineMergeCandidate {
+  profile1: SunshineProfile
+  profile2: SunshineProfile
+  confidence_score: number
+  matching_fields: string[]
+  suggested_master?: string
+}
+
+export interface SunshineDataExport {
+  id?: string
+  export_type: 'profiles' | 'objects' | 'events' | 'relationships'
+  format: 'json' | 'csv'
+  filters?: Record<string, any>
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  download_url?: string
+  expires_at?: string
+  created_at?: string
+}
+
+export interface SunshineDataImport {
+  id?: string
+  import_type: 'profiles' | 'objects'
+  format: 'json' | 'csv'
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  total_records?: number
+  imported_records?: number
+  failed_records?: number
+  errors?: Array<{ line: number; message: string }>
+  created_at?: string
+}
+
+export interface SunshineWebhook {
+  id?: string
+  url: string
+  status: 'active' | 'inactive'
+  event_types: string[]
+  signing_secret?: string
+  created_at?: string
+  updated_at?: string
+}
+
 export class ZendeskSunshineAdapter extends BaseIntegrationAdapter {
   private subdomain?: string
   private email?: string
@@ -783,6 +916,979 @@ export class ZendeskSunshineAdapter extends BaseIntegrationAdapter {
         if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
         const data = await response.json()
         return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Profile Types
+  // ===========================
+
+  async createProfileType(profileType: Omit<SunshineProfileType, 'created_at' | 'updated_at'>): Promise<IntegrationResponse<SunshineProfileType>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profile_types`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: profileType }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getProfileType(key: string): Promise<IntegrationResponse<SunshineProfileType>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profile_types/${key}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listProfileTypes(): Promise<IntegrationResponse<{ data: SunshineProfileType[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profile_types`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateProfileType(key: string, updates: Partial<Omit<SunshineProfileType, 'key' | 'created_at' | 'updated_at'>>): Promise<IntegrationResponse<SunshineProfileType>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profile_types/${key}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: updates }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteProfileType(key: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profile_types/${key}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Bulk Operations
+  // ===========================
+
+  async bulkCreateProfiles(profiles: SunshineProfile[]): Promise<IntegrationResponse<SunshineBulkOperation>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/bulk_create`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ profiles }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.operation
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async bulkUpdateProfiles(updates: Array<{ type: string; identifier_type: string; identifier_value: string; attributes: Record<string, any> }>): Promise<IntegrationResponse<SunshineBulkOperation>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/bulk_update`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ updates }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.operation
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async bulkDeleteProfiles(profileIds: Array<{ type: string; identifier_type: string; identifier_value: string }>): Promise<IntegrationResponse<SunshineBulkOperation>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/bulk_delete`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ profile_ids: profileIds }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.operation
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async bulkCreateObjects(objectType: string, objects: Array<Partial<SunshineCustomObject>>): Promise<IntegrationResponse<SunshineBulkOperation>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/objects/records/bulk_create`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ type: objectType, objects }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.operation
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getBulkOperation(operationId: string): Promise<IntegrationResponse<SunshineBulkOperation>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/bulk_operations/${operationId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.operation
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Segments
+  // ===========================
+
+  async createSegment(segment: Omit<SunshineSegment, 'id' | 'count' | 'created_at' | 'updated_at'>): Promise<IntegrationResponse<SunshineSegment>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/segments`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: segment }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getSegment(segmentId: string): Promise<IntegrationResponse<SunshineSegment>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/segments/${segmentId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listSegments(params?: { profile_type?: string }): Promise<IntegrationResponse<{ data: SunshineSegment[] }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.profile_type) query.set('profile_type', params.profile_type)
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/segments${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateSegment(segmentId: string, updates: Partial<Omit<SunshineSegment, 'id' | 'count' | 'created_at' | 'updated_at'>>): Promise<IntegrationResponse<SunshineSegment>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/segments/${segmentId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: updates }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteSegment(segmentId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/segments/${segmentId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getSegmentProfiles(segmentId: string, params?: { page_size?: number; page?: string }): Promise<IntegrationResponse<{ data: SunshineProfile[]; links?: any; meta?: any }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.page_size) query.set('page_size', params.page_size.toString())
+      if (params?.page) query.set('page', params.page)
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/segments/${segmentId}/profiles${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Tags
+  // ===========================
+
+  async createTag(tag: Omit<SunshineTag, 'id' | 'created_at'>): Promise<IntegrationResponse<SunshineTag>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tags`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: tag }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listTags(params?: { category?: string }): Promise<IntegrationResponse<{ data: SunshineTag[] }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.category) query.set('category', params.category)
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/tags${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async addTagsToProfile(profileType: string, identifierType: string, identifierValue: string, tagIds: string[]): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/${profileType}/${identifierType}/${identifierValue}/tags`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ tag_ids: tagIds }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async removeTagsFromProfile(profileType: string, identifierType: string, identifierValue: string, tagIds: string[]): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/${profileType}/${identifierType}/${identifierValue}/tags`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ tag_ids: tagIds }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getProfileTags(profileType: string, identifierType: string, identifierValue: string): Promise<IntegrationResponse<{ data: SunshineTag[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/${profileType}/${identifierType}/${identifierValue}/tags`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Notes
+  // ===========================
+
+  async createNote(note: Omit<SunshineNote, 'id' | 'created_at' | 'updated_at'>): Promise<IntegrationResponse<SunshineNote>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/notes`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: note }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getNote(noteId: string): Promise<IntegrationResponse<SunshineNote>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/notes/${noteId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listProfileNotes(profileType: string, identifierType: string, identifierValue: string): Promise<IntegrationResponse<{ data: SunshineNote[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/${profileType}/${identifierType}/${identifierValue}/notes`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateNote(noteId: string, content: string): Promise<IntegrationResponse<SunshineNote>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/notes/${noteId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: { content } }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteNote(noteId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/notes/${noteId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Attachments
+  // ===========================
+
+  async uploadAttachment(file: { filename: string; content_type: string; data: Buffer | Blob }): Promise<IntegrationResponse<SunshineAttachment>> {
+    try {
+      await this.ensureConnected()
+      const formData = new FormData()
+      formData.append('file', new Blob([file.data], { type: file.content_type }), file.filename)
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/attachments`, {
+          method: 'POST',
+          headers: {
+            'Authorization': this.getHeaders()['Authorization'],
+          },
+          body: formData,
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getAttachment(attachmentId: string): Promise<IntegrationResponse<SunshineAttachment>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/attachments/${attachmentId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteAttachment(attachmentId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/attachments/${attachmentId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async attachToProfile(profileType: string, identifierType: string, identifierValue: string, attachmentIds: string[]): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/${profileType}/${identifierType}/${identifierValue}/attachments`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ attachment_ids: attachmentIds }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Activities
+  // ===========================
+
+  async createActivity(activity: Omit<SunshineActivity, 'id' | 'created_at'>): Promise<IntegrationResponse<SunshineActivity>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/activities`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: activity }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listActivities(params?: { target_type?: string; target_id?: string; type?: string; page_size?: number }): Promise<IntegrationResponse<{ data: SunshineActivity[] }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.target_type) query.set('target_type', params.target_type)
+      if (params?.target_id) query.set('target_id', params.target_id)
+      if (params?.type) query.set('type', params.type)
+      if (params?.page_size) query.set('page_size', params.page_size.toString())
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/activities${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getActivity(activityId: string): Promise<IntegrationResponse<SunshineActivity>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/activities/${activityId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Profile Timeline
+  // ===========================
+
+  async getProfileTimeline(profileType: string, identifierType: string, identifierValue: string): Promise<IntegrationResponse<SunshineProfileTimeline>> {
+    try {
+      await this.ensureConnected()
+
+      // Fetch profile, events, activities, notes, and relationships in parallel
+      const [profileRes, eventsRes, activitiesRes, notesRes, relationshipsRes] = await Promise.all([
+        this.getProfile(profileType, identifierType, identifierValue),
+        this.listEvents(profileType, identifierType, identifierValue),
+        this.listActivities({ target_type: 'profile', target_id: `${profileType}:${identifierType}:${identifierValue}` }),
+        this.listProfileNotes(profileType, identifierType, identifierValue),
+        this.listRelationships({ source: `${profileType}:${identifierType}:${identifierValue}` }),
+      ])
+
+      if (!profileRes.success) return { success: false, error: profileRes.error }
+
+      const timeline: SunshineProfileTimeline = {
+        profile: profileRes.data!,
+        events: eventsRes.success ? eventsRes.data!.data : [],
+        activities: activitiesRes.success ? activitiesRes.data!.data : [],
+        notes: notesRes.success ? notesRes.data!.data : [],
+        relationships: relationshipsRes.success ? relationshipsRes.data!.data : [],
+      }
+
+      return { success: true, data: timeline }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Advanced Querying
+  // ===========================
+
+  async advancedQuery(params: {
+    resource_type: 'profile' | 'object'
+    type: string
+    filters: SunshineQueryBuilder[]
+    sort?: { field: string; order: 'asc' | 'desc' }[]
+    page_size?: number
+    page?: string
+  }): Promise<IntegrationResponse<{ data: any[]; links?: any; meta?: any }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/query/advanced`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(params),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async searchProfiles(params: { query: string; profile_type?: string; limit?: number }): Promise<IntegrationResponse<{ data: SunshineProfile[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/search`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(params),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Merge Suggestions
+  // ===========================
+
+  async findMergeCandidates(profileType: string, identifierType: string, identifierValue: string, params?: { min_confidence?: number; limit?: number }): Promise<IntegrationResponse<{ data: SunshineMergeCandidate[] }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams()
+      if (params?.min_confidence) query.set('min_confidence', params.min_confidence.toString())
+      if (params?.limit) query.set('limit', params.limit.toString())
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/${profileType}/${identifierType}/${identifierValue}/merge_candidates${query.toString() ? `?${query}` : ''}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async detectDuplicates(profileType: string, params?: { min_confidence?: number; page_size?: number }): Promise<IntegrationResponse<{ data: SunshineMergeCandidate[] }>> {
+    try {
+      await this.ensureConnected()
+      const query = new URLSearchParams({ profile_type: profileType })
+      if (params?.min_confidence) query.set('min_confidence', params.min_confidence.toString())
+      if (params?.page_size) query.set('page_size', params.page_size.toString())
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/profiles/duplicates?${query}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Data Import/Export
+  // ===========================
+
+  async createExport(params: { export_type: SunshineDataExport['export_type']; format: 'json' | 'csv'; filters?: Record<string, any> }): Promise<IntegrationResponse<SunshineDataExport>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/exports`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: params }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getExport(exportId: string): Promise<IntegrationResponse<SunshineDataExport>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/exports/${exportId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listExports(): Promise<IntegrationResponse<{ data: SunshineDataExport[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/exports`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async createImport(params: { import_type: SunshineDataImport['import_type']; format: 'json' | 'csv'; file_url: string }): Promise<IntegrationResponse<SunshineDataImport>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/imports`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: params }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getImport(importId: string): Promise<IntegrationResponse<SunshineDataImport>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/imports/${importId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listImports(): Promise<IntegrationResponse<{ data: SunshineDataImport[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/imports`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ===========================
+  // Webhooks
+  // ===========================
+
+  async createWebhook(webhook: Omit<SunshineWebhook, 'id' | 'signing_secret' | 'created_at' | 'updated_at'>): Promise<IntegrationResponse<SunshineWebhook>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: webhook }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getWebhook(webhookId: string): Promise<IntegrationResponse<SunshineWebhook>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks/${webhookId}`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listWebhooks(): Promise<IntegrationResponse<{ data: SunshineWebhook[] }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks`, {
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateWebhook(webhookId: string, updates: Partial<Omit<SunshineWebhook, 'id' | 'signing_secret' | 'created_at' | 'updated_at'>>): Promise<IntegrationResponse<SunshineWebhook>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks/${webhookId}`, {
+          method: 'PATCH',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ data: updates }),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        const data = await response.json()
+        return data.data
+      })
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteWebhook(webhookId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks/${webhookId}`, {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return {}
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async testWebhook(webhookId: string): Promise<IntegrationResponse<{ success: boolean; response?: any }>> {
+    try {
+      await this.ensureConnected()
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(`${this.baseUrl}/webhooks/${webhookId}/test`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+        })
+        if (!response.ok) throw new Error(`Sunshine API error: ${response.status}`)
+        return await response.json()
       })
       return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
     } catch (error: any) {
