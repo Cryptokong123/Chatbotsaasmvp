@@ -85,7 +85,7 @@ const nodeTypeConfig: Record<NodeType, { icon: any; label: string; color: string
 }
 
 export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow?.nodes || [])
+  const [nodes, setNodes, onNodesChange] = useNodesState((initialFlow?.nodes as Node[]) || [])
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow?.edges || [])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [flowName, setFlowName] = useState(initialFlow?.name || 'New Flow')
