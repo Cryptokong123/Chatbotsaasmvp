@@ -159,7 +159,7 @@ export async function performRAGQuery(
 export async function processTrainingData(
   botId: string,
   content: string,
-  sourceType: 'text' | 'pdf' | 'faq' | 'url',
+  sourceType: 'text' | 'pdf' | 'faq' | 'url' | 'document',
   sourceName?: string
 ): Promise<void> {
   const supabase = createServerSupabaseClient()
