@@ -44,7 +44,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { nodeTypes } from './flow-nodes'
-import type { ConversationFlow, NodeType, NodeData } from '@/types/flow'
+import type { ConversationFlow, NodeType, NodeData, FlowNode } from '@/types/flow'
 import { validateFlow, getValidationSummary, type ValidationResult } from '@/lib/flow-validator'
 import {
   Play,
@@ -85,9 +85,9 @@ const nodeTypeConfig: Record<NodeType, { icon: any; label: string; color: string
 }
 
 export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState((initialFlow?.nodes as unknown as Node[]) || [])
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>((initialFlow?.nodes as FlowNode[]) || [])
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow?.edges || [])
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null)
+  const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null)
   const [flowName, setFlowName] = useState(initialFlow?.name || 'New Flow')
   const [flowDescription, setFlowDescription] = useState(initialFlow?.description || '')
   const [triggerType, setTriggerType] = useState<ConversationFlow['trigger_type']>(
@@ -127,7 +127,7 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
     [setEdges]
   )
 
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+  const onNodeClick = useCallback((_: React.MouseEvent, node: FlowNode) => {
     setSelectedNode(node)
   }, [])
 
@@ -190,7 +190,7 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
         },
       }
 
-      const newNode: Node = {
+      const newNode: FlowNode = {
         id,
         type,
         position,
@@ -545,7 +545,7 @@ function NodeEditorPanel({
   onUpdate,
   onClose,
 }: {
-  node: Node
+  node: FlowNode
   onUpdate: (data: Partial<NodeData>) => void
   onClose: () => void
 }) {
