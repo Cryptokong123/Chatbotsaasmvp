@@ -156,7 +156,7 @@ export class BaseIntegrationAdapter {
     requestsSuccessful: 0,
     requestsFailed: 0,
     totalLatency: 0,
-    lastRequest?: Date,
+    lastRequest: undefined as Date | undefined,
   }
 
   constructor(config: IntegrationConfig) {
