@@ -1563,8 +1563,8 @@ export class FreshdeskAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
       const formData = new FormData()
-      const blob = file instanceof Buffer ? new Blob([file]) : file
-      formData.append('attachments[]', blob, fileName || 'file')
+      const blob = file instanceof Buffer ? new Blob([file as any]) : file
+      formData.append('attachments[]', blob as Blob, fileName || 'file')
 
       const result = await this.makeRequest(async () => {
         const response = await fetch(`${this.baseUrl}/attachments`, {

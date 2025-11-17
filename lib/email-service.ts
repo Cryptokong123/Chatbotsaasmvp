@@ -125,15 +125,15 @@ export async function isNotificationEnabled(
 ): Promise<boolean> {
   const supabase = createServerSupabaseClient()
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('notification_preferences')
     .select('email_enabled, ' + notificationType + '_enabled')
     .eq('user_id', userId)
     .single()
 
-  if (!data) return false
+  if (error || !data) return false
 
-  return data.email_enabled && data[notificationType + '_enabled']
+  return (data as any).email_enabled && (data as any)[notificationType + '_enabled']
 }
 
 // Send notification only if enabled

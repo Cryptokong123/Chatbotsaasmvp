@@ -34,7 +34,7 @@ import type {
 } from '@/types/flow'
 
 // START NODE
-export function StartNode({ data }: NodeProps<StartNodeData>) {
+export function StartNode({ data }: any) {
   return (
     <BaseFlowNode
       icon={Play}
@@ -48,7 +48,7 @@ export function StartNode({ data }: NodeProps<StartNodeData>) {
 }
 
 // MESSAGE NODE
-export function MessageNode({ data }: NodeProps<MessageNodeData>) {
+export function MessageNode({ data }: any) {
   return (
     <BaseFlowNode icon={MessageSquare} title="Send Message" color="#3b82f6">
       <NodeField label="Message" value={data.message || 'No message set'} />
@@ -60,7 +60,7 @@ export function MessageNode({ data }: NodeProps<MessageNodeData>) {
 }
 
 // QUESTION NODE
-export function QuestionNode({ data }: NodeProps<QuestionNodeData>) {
+export function QuestionNode({ data }: any) {
   return (
     <BaseFlowNode icon={HelpCircle} title="Ask Question" color="#8b5cf6">
       <NodeField label="Question" value={data.question || 'No question set'} />
@@ -76,7 +76,7 @@ export function QuestionNode({ data }: NodeProps<QuestionNodeData>) {
 }
 
 // CONDITION NODE
-export function ConditionNode({ data }: NodeProps<ConditionNodeData>) {
+export function ConditionNode({ data }: any) {
   const conditionCount = data.conditions?.length || 0
 
   return (
@@ -100,7 +100,7 @@ export function ConditionNode({ data }: NodeProps<ConditionNodeData>) {
 }
 
 // API CALL NODE
-export function ApiCallNode({ data }: NodeProps<ApiCallNodeData>) {
+export function ApiCallNode({ data }: any) {
   return (
     <BaseFlowNode icon={Globe} title="API Call" color="#ec4899">
       <NodeField label="Method" value={data.method || 'GET'} />
@@ -114,7 +114,7 @@ export function ApiCallNode({ data }: NodeProps<ApiCallNodeData>) {
 }
 
 // SET VARIABLE NODE
-export function SetVariableNode({ data }: NodeProps<SetVariableNodeData>) {
+export function SetVariableNode({ data }: any) {
   return (
     <BaseFlowNode icon={Variable} title="Set Variable" color="#14b8a6">
       <NodeField label="Variable" value={data.variable_name || 'variable'} />
@@ -127,7 +127,7 @@ export function SetVariableNode({ data }: NodeProps<SetVariableNodeData>) {
 }
 
 // FORM NODE
-export function FormNode({ data }: NodeProps<FormNodeData>) {
+export function FormNode({ data }: any) {
   const fieldCount = data.fields?.length || 0
 
   return (
@@ -152,7 +152,7 @@ export function FormNode({ data }: NodeProps<FormNodeData>) {
 }
 
 // END NODE
-export function EndNode({ data }: NodeProps<EndNodeData>) {
+export function EndNode({ data }: any) {
   const variantMap = {
     success: 'success' as const,
     failure: 'error' as const,
@@ -177,7 +177,7 @@ export function EndNode({ data }: NodeProps<EndNodeData>) {
 }
 
 // HANDOFF NODE
-export function HandoffNode({ data }: NodeProps<HandoffNodeData>) {
+export function HandoffNode({ data }: any) {
   return (
     <BaseFlowNode icon={UserPlus} title="Handoff" color="#f97316">
       <NodeField label="Type" value={data.handoff_type || 'human'} />
@@ -195,7 +195,7 @@ export function HandoffNode({ data }: NodeProps<HandoffNodeData>) {
 }
 
 // INTENT CHECK NODE
-export function IntentCheckNode({ data }: NodeProps<IntentCheckNodeData>) {
+export function IntentCheckNode({ data }: any) {
   const intentCount = data.intents?.length || 0
 
   return (
@@ -231,4 +231,4 @@ export const nodeTypes = {
   end: EndNode,
   handoff: HandoffNode,
   intent_check: IntentCheckNode,
-}
+} as any

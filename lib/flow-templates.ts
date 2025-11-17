@@ -150,6 +150,7 @@ export const flowTemplates: FlowTemplate[] = [
         { id: 'e8', source: 'condition-1', target: 'message-2' },
         { id: 'e9', source: 'message-2', target: 'end-1' },
       ],
+      variables: {},
       variables_schema: {
         customer_name: 'string',
         company_name: 'string',
@@ -303,6 +304,7 @@ export const flowTemplates: FlowTemplate[] = [
         { id: 'e12', source: 'message-unknown', target: 'end-1' },
         { id: 'e13', source: 'message-error', target: 'end-1' },
       ],
+      variables: {},
       variables_schema: {
         order_number: 'string',
         order_data: 'object',
@@ -386,7 +388,7 @@ export const flowTemplates: FlowTemplate[] = [
             label: 'Ask Date',
             question: 'What date would you prefer? (YYYY-MM-DD)',
             variable_name: 'preferred_date',
-            input_type: 'date',
+            input_type: 'text',
           },
         },
         {
@@ -398,12 +400,12 @@ export const flowTemplates: FlowTemplate[] = [
             url: 'https://api.example.com/appointments',
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: {
+            body: JSON.stringify({
               name: '{{name}}',
               email: '{{email}}',
               service: '{{service}}',
               date: '{{preferred_date}}',
-            },
+            }),
             store_response_in: 'booking_result',
             timeout: 10000,
             on_success: 'message-success',
@@ -450,6 +452,7 @@ export const flowTemplates: FlowTemplate[] = [
         { id: 'e9', source: 'message-success', target: 'end-1' },
         { id: 'e10', source: 'message-error', target: 'end-1' },
       ],
+      variables: {},
       variables_schema: {
         name: 'string',
         email: 'string',
@@ -497,7 +500,7 @@ export const flowTemplates: FlowTemplate[] = [
             label: 'Ask Description',
             question: 'Please describe the issue you\'re experiencing:',
             variable_name: 'issue_description',
-            input_type: 'textarea',
+            input_type: 'text',
             validation: { type: 'required', error_message: 'Please describe your issue' },
           },
         },
@@ -509,8 +512,8 @@ export const flowTemplates: FlowTemplate[] = [
             label: 'Classify Urgency',
             use_ai: false,
             intents: [
-              { name: 'urgent', keywords: ['urgent', 'critical', 'down', 'not working', 'broken'], next_node: 'set-1' },
-              { name: 'normal', keywords: ['question', 'how to', 'wondering'], next_node: 'set-2' },
+              { intent: 'urgent', keywords: ['urgent', 'critical', 'down', 'not working', 'broken'], next_node: 'set-1' },
+              { intent: 'normal', keywords: ['question', 'how to', 'wondering'], next_node: 'set-2' },
             ],
             default_next_node: 'set-2',
           },
@@ -557,11 +560,11 @@ export const flowTemplates: FlowTemplate[] = [
             url: 'https://api.example.com/tickets',
             method: 'POST',
             headers: {},
-            body: {
+            body: JSON.stringify({
               description: '{{issue_description}}',
               priority: '{{priority}}',
               email: '{{email}}',
-            },
+            }),
             store_response_in: 'ticket',
             timeout: 10000,
             on_success: 'message-success',
@@ -635,6 +638,7 @@ export const flowTemplates: FlowTemplate[] = [
         { id: 'e13', source: 'condition-1', target: 'handoff-1' },
         { id: 'e14', source: 'condition-1', target: 'end-1' },
       ],
+      variables: {},
       variables_schema: {
         issue_description: 'string',
         priority: 'string',
@@ -706,7 +710,7 @@ export const flowTemplates: FlowTemplate[] = [
             label: 'Positive Feedback',
             question: 'That\'s great! What did you like most?',
             variable_name: 'feedback',
-            input_type: 'textarea',
+            input_type: 'text',
           },
         },
         {
@@ -717,7 +721,7 @@ export const flowTemplates: FlowTemplate[] = [
             label: 'Negative Feedback',
             question: 'We\'re sorry to hear that. What can we do better?',
             variable_name: 'feedback',
-            input_type: 'textarea',
+            input_type: 'text',
           },
         },
         {
@@ -728,7 +732,7 @@ export const flowTemplates: FlowTemplate[] = [
             label: 'Neutral Feedback',
             question: 'Thank you! Any additional comments?',
             variable_name: 'feedback',
-            input_type: 'textarea',
+            input_type: 'text',
           },
         },
         {
@@ -751,11 +755,11 @@ export const flowTemplates: FlowTemplate[] = [
             url: 'https://api.example.com/feedback',
             method: 'POST',
             headers: {},
-            body: {
+            body: JSON.stringify({
               rating: '{{rating}}',
               feedback: '{{feedback}}',
               sentiment: '{{sentiment}}',
-            },
+            }),
             store_response_in: 'result',
             timeout: 10000,
             on_success: 'message-thanks',
@@ -820,6 +824,7 @@ export const flowTemplates: FlowTemplate[] = [
         { id: 'e13', source: 'condition-2', target: 'handoff-1' },
         { id: 'e14', source: 'condition-2', target: 'end-1' },
       ],
+      variables: {},
       variables_schema: {
         rating: 'number',
         feedback: 'string',

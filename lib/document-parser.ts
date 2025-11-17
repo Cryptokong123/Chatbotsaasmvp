@@ -1,6 +1,8 @@
 // Document parsing utilities for PDF and DOCX files
-import * as pdfParse from 'pdf-parse'
 import mammoth from 'mammoth'
+
+// Use dynamic import for pdf-parse to avoid type issues
+const pdfParse = require('pdf-parse')
 
 export interface ParsedDocument {
   text: string

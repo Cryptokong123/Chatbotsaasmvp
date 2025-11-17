@@ -85,9 +85,9 @@ const nodeTypeConfig: Record<NodeType, { icon: any; label: string; color: string
 }
 
 export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>((initialFlow?.nodes as FlowNode[]) || [])
+  const [nodes, setNodes, onNodesChange] = useNodesState((initialFlow?.nodes || []) as unknown as Node[])
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow?.edges || [])
-  const [selectedNode, setSelectedNode] = useState<FlowNode | null>(null)
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [flowName, setFlowName] = useState(initialFlow?.name || 'New Flow')
   const [flowDescription, setFlowDescription] = useState(initialFlow?.description || '')
   const [triggerType, setTriggerType] = useState<ConversationFlow['trigger_type']>(
@@ -112,7 +112,7 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
       description: flowDescription,
       trigger_type: triggerType,
       trigger_value: triggerValue,
-      nodes,
+      nodes: nodes as unknown as FlowNode[],
       edges,
       entry_node_id: nodes.find((n) => n.type === 'start')?.id,
       is_active: initialFlow?.is_active || false,
@@ -129,7 +129,7 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
     [setEdges]
   )
 
-  const onNodeClick = useCallback((_: React.MouseEvent, node: FlowNode) => {
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node)
   }, [])
 
@@ -192,7 +192,7 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
         },
       }
 
-      const newNode: FlowNode = {
+      const newNode: Node = {
         id,
         type,
         position,
@@ -242,7 +242,7 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
       is_active: true,
       trigger_type: triggerType,
       trigger_value: triggerValue,
-      nodes,
+      nodes: nodes as unknown as FlowNode[],
       edges,
       variables: {},
       entry_node_id: nodes.find((n) => n.type === 'start')?.id,
@@ -261,7 +261,7 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
         is_active: true,
         trigger_type: triggerType,
         trigger_value: triggerValue,
-        nodes,
+        nodes: nodes as unknown as FlowNode[],
         edges,
         variables: {},
         entry_node_id: nodes.find((n) => n.type === 'start')?.id,
@@ -547,7 +547,7 @@ function NodeEditorPanel({
   onUpdate,
   onClose,
 }: {
-  node: FlowNode
+  node: Node
   onUpdate: (data: Partial<NodeData>) => void
   onClose: () => void
 }) {

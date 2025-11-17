@@ -106,11 +106,19 @@ export async function recordUsage(
 
     // If duplicate, update count
     if (error && error.code === '23505') {
-      // Unique violation
-      await supabase
+      // Unique violation - fetch current count and update
+      const { data: existing } = await supabase
         .from('usage_stats')
-        .update({ count: supabase.sql`count + ${count}` })
+        .select('count')
         .match({ user_id: userId, bot_id: botId, stat_type: statType, date: today })
+        .single()
+
+      if (existing) {
+        await supabase
+          .from('usage_stats')
+          .update({ count: existing.count + count })
+          .match({ user_id: userId, bot_id: botId, stat_type: statType, date: today })
+      }
     }
   } catch (error) {
     console.error('Failed to record usage:', error)

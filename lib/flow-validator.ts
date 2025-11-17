@@ -136,7 +136,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
 
   switch (node.type) {
     case 'message':
-      if (!node.data.message || node.data.message.trim() === '') {
+      if (!(node.data as any).message || (node.data as any).message.trim() === '') {
         issues.push({
           type: 'error',
           nodeId: node.id,
@@ -147,7 +147,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
       break
 
     case 'question':
-      if (!node.data.question || node.data.question.trim() === '') {
+      if (!(node.data as any).question || (node.data as any).question.trim() === '') {
         issues.push({
           type: 'error',
           nodeId: node.id,
@@ -155,7 +155,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
           suggestion: 'Add a question to ask',
         })
       }
-      if (!node.data.variable_name || node.data.variable_name.trim() === '') {
+      if (!(node.data as any).variable_name || (node.data as any).variable_name.trim() === '') {
         issues.push({
           type: 'error',
           nodeId: node.id,
@@ -168,20 +168,20 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
         (n) =>
           n.type === 'question' &&
           n.id !== node.id &&
-          n.data.variable_name === node.data.variable_name
+          (n.data as any).variable_name === (node.data as any).variable_name
       )
       if (duplicateVars.length > 0) {
         issues.push({
           type: 'warning',
           nodeId: node.id,
-          message: `Variable "${node.data.variable_name}" is used in multiple question nodes`,
+          message: `Variable "${(node.data as any).variable_name}" is used in multiple question nodes`,
           suggestion: 'This will overwrite previous values - use unique variable names',
         })
       }
       break
 
     case 'condition':
-      if (!node.data.conditions || node.data.conditions.length === 0) {
+      if (!(node.data as any).conditions || (node.data as any).conditions.length === 0) {
         issues.push({
           type: 'error',
           nodeId: node.id,
@@ -190,7 +190,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
         })
       }
       // Check that condition variables exist
-      node.data.conditions?.forEach((condition: any, index: number) => {
+      (node.data as any).conditions?.forEach((condition: any, index: number) => {
         if (!condition.variable) {
           issues.push({
             type: 'error',
@@ -203,7 +203,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
       break
 
     case 'api_call':
-      if (!node.data.url || node.data.url.trim() === '') {
+      if (!(node.data as any).url || (node.data as any).url.trim() === '') {
         issues.push({
           type: 'error',
           nodeId: node.id,
@@ -213,10 +213,10 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
       } else {
         // Validate URL format
         try {
-          if (node.data.url.includes('{{')) {
+          if ((node.data as any).url.includes('{{')) {
             // Has variable interpolation - can't validate yet
           } else {
-            new URL(node.data.url)
+            new URL((node.data as any).url)
           }
         } catch {
           issues.push({
@@ -227,7 +227,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
           })
         }
       }
-      if (!node.data.store_response_in || node.data.store_response_in.trim() === '') {
+      if (!(node.data as any).store_response_in || (node.data as any).store_response_in.trim() === '') {
         issues.push({
           type: 'warning',
           nodeId: node.id,
@@ -238,7 +238,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
       break
 
     case 'set_variable':
-      if (!node.data.variable_name || node.data.variable_name.trim() === '') {
+      if (!(node.data as any).variable_name || (node.data as any).variable_name.trim() === '') {
         issues.push({
           type: 'error',
           nodeId: node.id,
@@ -246,7 +246,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
           suggestion: 'Specify which variable to set',
         })
       }
-      if (node.data.value === undefined || node.data.value === '') {
+      if ((node.data as any).value === undefined || (node.data as any).value === '') {
         issues.push({
           type: 'warning',
           nodeId: node.id,
@@ -257,7 +257,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
       break
 
     case 'form':
-      if (!node.data.fields || node.data.fields.length === 0) {
+      if (!(node.data as any).fields || (node.data as any).fields.length === 0) {
         issues.push({
           type: 'warning',
           nodeId: node.id,
@@ -268,7 +268,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
       break
 
     case 'handoff':
-      if (!node.data.message || node.data.message.trim() === '') {
+      if (!(node.data as any).message || (node.data as any).message.trim() === '') {
         issues.push({
           type: 'warning',
           nodeId: node.id,
@@ -279,7 +279,7 @@ function validateNode(node: FlowNode, flow: ConversationFlow): ValidationIssue[]
       break
 
     case 'intent_check':
-      if (!node.data.intents || node.data.intents.length === 0) {
+      if (!(node.data as any).intents || (node.data as any).intents.length === 0) {
         issues.push({
           type: 'error',
           nodeId: node.id,
