@@ -12,6 +12,10 @@
  * - Prompt caching (cost optimization)
  * - System prompts
  * - Multi-turn conversations
+ * - Batch processing
+ * - Content moderation
+ * - Structured output generation
+ * - Usage tracking
  */
 import { BaseIntegrationAdapter } from '../base-adapter'
 import { IntegrationConfig, IntegrationCapabilities, IntegrationResponse } from '../types'
@@ -34,6 +38,9 @@ export interface ClaudeContent {
   input?: any
   tool_use_id?: string
   content?: string
+  cache_control?: {
+    type: 'ephemeral'
+  }
 }
 
 export interface ClaudeTool {
@@ -49,7 +56,7 @@ export interface ClaudeTool {
 export interface ClaudeCompletionRequest {
   model: string
   messages: ClaudeMessage[]
-  system?: string
+  system?: string | Array<{ type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }>
   max_tokens: number
   temperature?: number
   top_p?: number
@@ -93,11 +100,66 @@ export interface ClaudeStreamChunk {
   usage?: ClaudeCompletionResponse['usage']
 }
 
+export interface ClaudeBatchRequest {
+  custom_id: string
+  params: ClaudeCompletionRequest
+}
+
+export interface ClaudeBatchResponse {
+  id: string
+  type: 'message_batch'
+  processing_status: 'in_progress' | 'completed' | 'failed'
+  request_counts: {
+    processing: number
+    completed: number
+    failed: number
+    total: number
+  }
+  ended_at?: string
+  created_at: string
+  expires_at: string
+  results_url?: string
+}
+
+export interface ClaudeConversation {
+  id: string
+  messages: ClaudeMessage[]
+  systemPrompt?: string
+  metadata?: Record<string, any>
+  created_at: Date
+  updated_at: Date
+}
+
+export interface ClaudeUsageStats {
+  total_input_tokens: number
+  total_output_tokens: number
+  total_cache_creation_tokens: number
+  total_cache_read_tokens: number
+  total_requests: number
+  estimated_cost: number
+  by_model: Record<string, {
+    input_tokens: number
+    output_tokens: number
+    requests: number
+    cost: number
+  }>
+}
+
 export class ClaudeAdapter extends BaseIntegrationAdapter {
   private apiKey?: string
   private baseUrl = 'https://api.anthropic.com/v1'
   private defaultModel = 'claude-3-5-sonnet-20241022'
   private apiVersion = '2023-06-01'
+  private conversations: Map<string, ClaudeConversation> = new Map()
+  private usageStats: ClaudeUsageStats = {
+    total_input_tokens: 0,
+    total_output_tokens: 0,
+    total_cache_creation_tokens: 0,
+    total_cache_read_tokens: 0,
+    total_requests: 0,
+    estimated_cost: 0,
+    by_model: {},
+  }
 
   getCapabilities(): IntegrationCapabilities {
     return {
@@ -159,6 +221,7 @@ export class ClaudeAdapter extends BaseIntegrationAdapter {
 
   async disconnect(): Promise<IntegrationResponse<void>> {
     this.isConnected = false
+    this.conversations.clear()
     return { success: true, data: undefined }
   }
 
@@ -185,6 +248,40 @@ export class ClaudeAdapter extends BaseIntegrationAdapter {
       }
     }
   }
+
+  private trackUsage(model: string, usage: ClaudeCompletionResponse['usage']): void {
+    this.usageStats.total_input_tokens += usage.input_tokens
+    this.usageStats.total_output_tokens += usage.output_tokens
+    this.usageStats.total_cache_creation_tokens += usage.cache_creation_input_tokens || 0
+    this.usageStats.total_cache_read_tokens += usage.cache_read_input_tokens || 0
+    this.usageStats.total_requests += 1
+
+    if (!this.usageStats.by_model[model]) {
+      this.usageStats.by_model[model] = {
+        input_tokens: 0,
+        output_tokens: 0,
+        requests: 0,
+        cost: 0,
+      }
+    }
+
+    this.usageStats.by_model[model].input_tokens += usage.input_tokens
+    this.usageStats.by_model[model].output_tokens += usage.output_tokens
+    this.usageStats.by_model[model].requests += 1
+
+    const cost = this.calculateCost({
+      model,
+      inputTokens: usage.input_tokens,
+      outputTokens: usage.output_tokens,
+      cacheCreationTokens: usage.cache_creation_input_tokens,
+      cacheReadTokens: usage.cache_read_input_tokens,
+    })
+
+    this.usageStats.by_model[model].cost += cost.totalCost
+    this.usageStats.estimated_cost += cost.totalCost
+  }
+
+  // ==================== Core Completion Methods ====================
 
   /**
    * Create a completion with Claude
@@ -213,6 +310,10 @@ export class ClaudeAdapter extends BaseIntegrationAdapter {
 
         return await response.json()
       })
+
+      if (result.success && result.data) {
+        this.trackUsage(params.model, result.data.usage)
+      }
 
       return result.success
         ? { success: true, data: result.data }
@@ -255,6 +356,7 @@ export class ClaudeAdapter extends BaseIntegrationAdapter {
 
       const decoder = new TextDecoder()
       let buffer = ''
+      let finalUsage: ClaudeCompletionResponse['usage'] | undefined
 
       while (true) {
         const { done, value } = await reader.read()
@@ -271,12 +373,19 @@ export class ClaudeAdapter extends BaseIntegrationAdapter {
 
             try {
               const chunk = JSON.parse(data) as ClaudeStreamChunk
+              if (chunk.usage) {
+                finalUsage = chunk.usage
+              }
               onChunk(chunk)
             } catch (e) {
               // Skip invalid JSON
             }
           }
         }
+      }
+
+      if (finalUsage) {
+        this.trackUsage(params.model, finalUsage)
       }
 
       return { success: true, data: undefined }
@@ -346,6 +455,8 @@ export class ClaudeAdapter extends BaseIntegrationAdapter {
     }
   }
 
+  // ==================== Image Analysis ====================
+
   /**
    * Analyze an image with Claude
    */
@@ -410,6 +521,824 @@ export class ClaudeAdapter extends BaseIntegrationAdapter {
       },
     }
   }
+
+  /**
+   * Analyze multiple images in one request
+   */
+  async analyzeMultipleImages(params: {
+    images: Array<{ url?: string; base64?: string; mimeType?: string }>
+    prompt: string
+    model?: string
+    maxTokens?: number
+  }): Promise<IntegrationResponse<{ response: string; usage: ClaudeCompletionResponse['usage'] }>> {
+    const content: ClaudeContent[] = []
+
+    for (const image of params.images) {
+      content.push(
+        image.url
+          ? {
+              type: 'image',
+              source: {
+                type: 'url',
+                media_type: image.mimeType || 'image/jpeg',
+                data: image.url,
+              },
+            }
+          : {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: image.mimeType || 'image/jpeg',
+                data: image.base64!,
+              },
+            }
+      )
+    }
+
+    content.push({ type: 'text', text: params.prompt })
+
+    const completion = await this.createCompletion({
+      model: params.model || this.defaultModel,
+      messages: [{ role: 'user', content }],
+      max_tokens: params.maxTokens || 4096,
+    })
+
+    if (!completion.success) {
+      return { success: false, error: completion.error }
+    }
+
+    const response = completion.data!
+    const textContent = response.content
+      .filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('')
+
+    return {
+      success: true,
+      data: {
+        response: textContent,
+        usage: response.usage,
+      },
+    }
+  }
+
+  /**
+   * Extract text from an image (OCR)
+   */
+  async extractTextFromImage(params: {
+    imageUrl?: string
+    imageBase64?: string
+    mimeType?: string
+    model?: string
+  }): Promise<IntegrationResponse<{ text: string; usage: ClaudeCompletionResponse['usage'] }>> {
+    const result = await this.analyzeImage({
+      ...params,
+      prompt: 'Extract and transcribe all text visible in this image. Return only the extracted text, preserving formatting where possible.',
+    })
+
+    if (!result.success) {
+      return { success: false, error: result.error }
+    }
+
+    return {
+      success: true,
+      data: {
+        text: result.data!.response,
+        usage: result.data!.usage,
+      },
+    }
+  }
+
+  /**
+   * Compare multiple images
+   */
+  async compareImages(params: {
+    images: Array<{ url?: string; base64?: string; mimeType?: string }>
+    comparisonPrompt?: string
+    model?: string
+  }): Promise<IntegrationResponse<{ comparison: string; usage: ClaudeCompletionResponse['usage'] }>> {
+    const result = await this.analyzeMultipleImages({
+      images: params.images,
+      prompt: params.comparisonPrompt || 'Compare and contrast these images. Describe their similarities and differences in detail.',
+      model: params.model,
+    })
+
+    if (!result.success) {
+      return { success: false, error: result.error }
+    }
+
+    return {
+      success: true,
+      data: {
+        comparison: result.data!.response,
+        usage: result.data!.usage,
+      },
+    }
+  }
+
+  // ==================== Conversation Management ====================
+
+  /**
+   * Create a new conversation
+   */
+  createConversation(params?: {
+    systemPrompt?: string
+    metadata?: Record<string, any>
+  }): IntegrationResponse<{ conversationId: string }> {
+    const id = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    this.conversations.set(id, {
+      id,
+      messages: [],
+      systemPrompt: params?.systemPrompt,
+      metadata: params?.metadata,
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
+
+    return {
+      success: true,
+      data: { conversationId: id },
+    }
+  }
+
+  /**
+   * Add a message to a conversation and get response
+   */
+  async addMessageToConversation(params: {
+    conversationId: string
+    message: string
+    model?: string
+    temperature?: number
+    maxTokens?: number
+  }): Promise<IntegrationResponse<{
+    response: string
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const conversation = this.conversations.get(params.conversationId)
+    if (!conversation) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Conversation not found',
+          retryable: false,
+        },
+      }
+    }
+
+    conversation.messages.push({
+      role: 'user',
+      content: params.message,
+    })
+
+    const completion = await this.createCompletion({
+      model: params.model || this.defaultModel,
+      messages: conversation.messages,
+      system: conversation.systemPrompt,
+      max_tokens: params.maxTokens || 4096,
+      temperature: params.temperature,
+    })
+
+    if (!completion.success) {
+      // Remove the user message if completion failed
+      conversation.messages.pop()
+      return { success: false, error: completion.error }
+    }
+
+    const response = completion.data!
+    const textContent = response.content
+      .filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('')
+
+    conversation.messages.push({
+      role: 'assistant',
+      content: textContent,
+    })
+
+    conversation.updated_at = new Date()
+
+    return {
+      success: true,
+      data: {
+        response: textContent,
+        usage: response.usage,
+      },
+    }
+  }
+
+  /**
+   * Get conversation history
+   */
+  getConversationHistory(conversationId: string): IntegrationResponse<ClaudeConversation> {
+    const conversation = this.conversations.get(conversationId)
+    if (!conversation) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Conversation not found',
+          retryable: false,
+        },
+      }
+    }
+
+    return {
+      success: true,
+      data: conversation,
+    }
+  }
+
+  /**
+   * Clear conversation history
+   */
+  clearConversation(conversationId: string): IntegrationResponse<void> {
+    const conversation = this.conversations.get(conversationId)
+    if (!conversation) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Conversation not found',
+          retryable: false,
+        },
+      }
+    }
+
+    conversation.messages = []
+    conversation.updated_at = new Date()
+
+    return {
+      success: true,
+      data: undefined,
+    }
+  }
+
+  /**
+   * Delete a conversation
+   */
+  deleteConversation(conversationId: string): IntegrationResponse<void> {
+    const deleted = this.conversations.delete(conversationId)
+    if (!deleted) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Conversation not found',
+          retryable: false,
+        },
+      }
+    }
+
+    return {
+      success: true,
+      data: undefined,
+    }
+  }
+
+  /**
+   * Fork a conversation at a specific point
+   */
+  forkConversation(params: {
+    conversationId: string
+    atMessageIndex?: number
+  }): IntegrationResponse<{ conversationId: string }> {
+    const conversation = this.conversations.get(params.conversationId)
+    if (!conversation) {
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Conversation not found',
+          retryable: false,
+        },
+      }
+    }
+
+    const id = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const messagesToCopy = params.atMessageIndex !== undefined
+      ? conversation.messages.slice(0, params.atMessageIndex + 1)
+      : [...conversation.messages]
+
+    this.conversations.set(id, {
+      id,
+      messages: messagesToCopy,
+      systemPrompt: conversation.systemPrompt,
+      metadata: { ...conversation.metadata, forked_from: params.conversationId },
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
+
+    return {
+      success: true,
+      data: { conversationId: id },
+    }
+  }
+
+  // ==================== Tool Use & Function Calling ====================
+
+  /**
+   * Execute a tool workflow
+   */
+  async executeToolWorkflow(params: {
+    initialPrompt: string
+    tools: ClaudeTool[]
+    toolExecutor: (toolName: string, input: any) => Promise<any>
+    maxIterations?: number
+    model?: string
+  }): Promise<IntegrationResponse<{
+    finalResponse: string
+    toolCalls: Array<{ name: string; input: any; output: any }>
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const messages: ClaudeMessage[] = [
+      { role: 'user', content: params.initialPrompt },
+    ]
+
+    const toolCalls: Array<{ name: string; input: any; output: any }> = []
+    const maxIterations = params.maxIterations || 10
+    let totalUsage: ClaudeCompletionResponse['usage'] = {
+      input_tokens: 0,
+      output_tokens: 0,
+    }
+
+    for (let i = 0; i < maxIterations; i++) {
+      const completion = await this.createCompletion({
+        model: params.model || this.defaultModel,
+        messages,
+        max_tokens: 4096,
+        tools: params.tools,
+      })
+
+      if (!completion.success) {
+        return { success: false, error: completion.error }
+      }
+
+      const response = completion.data!
+      totalUsage.input_tokens += response.usage.input_tokens
+      totalUsage.output_tokens += response.usage.output_tokens
+
+      // If no tool use, we're done
+      if (response.stop_reason !== 'tool_use') {
+        const finalText = response.content
+          .filter(c => c.type === 'text')
+          .map(c => c.text)
+          .join('')
+
+        return {
+          success: true,
+          data: {
+            finalResponse: finalText,
+            toolCalls,
+            usage: totalUsage,
+          },
+        }
+      }
+
+      // Add assistant's response to messages
+      messages.push({
+        role: 'assistant',
+        content: response.content,
+      })
+
+      // Execute tools and prepare results
+      const toolResults: ClaudeContent[] = []
+
+      for (const content of response.content) {
+        if (content.type === 'tool_use') {
+          const output = await params.toolExecutor(content.name!, content.input)
+          toolCalls.push({
+            name: content.name!,
+            input: content.input,
+            output,
+          })
+
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: content.id!,
+            content: JSON.stringify(output),
+          })
+        }
+      }
+
+      // Add tool results to messages
+      messages.push({
+        role: 'user',
+        content: toolResults,
+      })
+    }
+
+    return {
+      success: false,
+      error: {
+        code: 'MAX_ITERATIONS',
+        message: 'Max tool iterations reached',
+        retryable: false,
+      },
+    }
+  }
+
+  /**
+   * Validate tool schema
+   */
+  validateToolSchema(tool: ClaudeTool): IntegrationResponse<{
+    valid: boolean
+    errors?: string[]
+  }> {
+    const errors: string[] = []
+
+    if (!tool.name) errors.push('Tool name is required')
+    if (!tool.description) errors.push('Tool description is required')
+    if (!tool.input_schema) errors.push('Tool input_schema is required')
+    if (tool.input_schema?.type !== 'object') {
+      errors.push('Tool input_schema type must be "object"')
+    }
+    if (!tool.input_schema?.properties) {
+      errors.push('Tool input_schema must have properties')
+    }
+
+    return {
+      success: true,
+      data: {
+        valid: errors.length === 0,
+        errors: errors.length > 0 ? errors : undefined,
+      },
+    }
+  }
+
+  // ==================== Structured Output ====================
+
+  /**
+   * Generate JSON with a specific schema
+   */
+  async generateJSON(params: {
+    prompt: string
+    schema: Record<string, any>
+    model?: string
+  }): Promise<IntegrationResponse<{
+    data: any
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const schemaString = JSON.stringify(params.schema, null, 2)
+    const fullPrompt = `${params.prompt}\n\nPlease respond with valid JSON matching this schema:\n${schemaString}\n\nRespond only with the JSON, no additional text.`
+
+    const completion = await this.createCompletion({
+      model: params.model || this.defaultModel,
+      messages: [{ role: 'user', content: fullPrompt }],
+      max_tokens: 4096,
+    })
+
+    if (!completion.success) {
+      return { success: false, error: completion.error }
+    }
+
+    const response = completion.data!
+    const textContent = response.content
+      .filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('')
+
+    try {
+      // Extract JSON from markdown code blocks if present
+      const jsonMatch = textContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, textContent]
+      const jsonString = jsonMatch[1].trim()
+      const parsed = JSON.parse(jsonString)
+
+      return {
+        success: true,
+        data: {
+          data: parsed,
+          usage: response.usage,
+        },
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_JSON',
+          message: 'Failed to parse JSON response',
+          retryable: true,
+        },
+      }
+    }
+  }
+
+  /**
+   * Extract structured data from text
+   */
+  async extractStructuredData(params: {
+    text: string
+    fields: Array<{ name: string; description: string; type: string }>
+    model?: string
+  }): Promise<IntegrationResponse<{
+    data: Record<string, any>
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const schema = {
+      type: 'object',
+      properties: params.fields.reduce((acc, field) => {
+        acc[field.name] = { type: field.type, description: field.description }
+        return acc
+      }, {} as Record<string, any>),
+    }
+
+    return this.generateJSON({
+      prompt: `Extract the following information from this text:\n\n${params.text}`,
+      schema,
+      model: params.model,
+    })
+  }
+
+  // ==================== Content Moderation ====================
+
+  /**
+   * Moderate content for safety
+   */
+  async moderateContent(params: {
+    content: string
+    model?: string
+  }): Promise<IntegrationResponse<{
+    safe: boolean
+    categories: string[]
+    explanation: string
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const result = await this.generateJSON({
+      prompt: `Analyze this content for safety concerns. Check for: hate speech, violence, sexual content, self-harm, illegal activities, personal information.
+
+Content: ${params.content}`,
+      schema: {
+        type: 'object',
+        properties: {
+          safe: { type: 'boolean', description: 'Whether the content is safe' },
+          categories: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Categories of concern found',
+          },
+          explanation: { type: 'string', description: 'Explanation of the assessment' },
+        },
+      },
+      model: params.model || 'claude-3-haiku-20240307', // Use faster model for moderation
+    })
+
+    if (!result.success) {
+      return { success: false, error: result.error }
+    }
+
+    return {
+      success: true,
+      data: {
+        ...result.data!.data,
+        usage: result.data!.usage,
+      },
+    }
+  }
+
+  /**
+   * Detect and redact PII
+   */
+  async redactPII(params: {
+    text: string
+    model?: string
+  }): Promise<IntegrationResponse<{
+    redactedText: string
+    foundPII: Array<{ type: string; value: string }>
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const result = await this.generateJSON({
+      prompt: `Identify and redact all personally identifiable information (PII) from this text. This includes: names, email addresses, phone numbers, addresses, SSN, credit card numbers, etc.
+
+Text: ${params.text}`,
+      schema: {
+        type: 'object',
+        properties: {
+          redactedText: { type: 'string', description: 'The text with PII redacted (use [REDACTED])' },
+          foundPII: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                type: { type: 'string' },
+                value: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+      model: params.model || 'claude-3-haiku-20240307',
+    })
+
+    if (!result.success) {
+      return { success: false, error: result.error }
+    }
+
+    return {
+      success: true,
+      data: {
+        ...result.data!.data,
+        usage: result.data!.usage,
+      },
+    }
+  }
+
+  // ==================== Text Processing ====================
+
+  /**
+   * Summarize text
+   */
+  async summarizeText(params: {
+    text: string
+    length?: 'short' | 'medium' | 'long'
+    model?: string
+  }): Promise<IntegrationResponse<{
+    summary: string
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const lengthInstructions = {
+      short: 'in 2-3 sentences',
+      medium: 'in 1-2 paragraphs',
+      long: 'in 3-4 paragraphs',
+    }
+
+    const completion = await this.createCompletion({
+      model: params.model || this.defaultModel,
+      messages: [
+        {
+          role: 'user',
+          content: `Please summarize the following text ${lengthInstructions[params.length || 'medium']}:\n\n${params.text}`,
+        },
+      ],
+      max_tokens: 2048,
+    })
+
+    if (!completion.success) {
+      return { success: false, error: completion.error }
+    }
+
+    const response = completion.data!
+    const summary = response.content
+      .filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('')
+
+    return {
+      success: true,
+      data: {
+        summary,
+        usage: response.usage,
+      },
+    }
+  }
+
+  /**
+   * Extract key points from text
+   */
+  async extractKeyPoints(params: {
+    text: string
+    maxPoints?: number
+    model?: string
+  }): Promise<IntegrationResponse<{
+    keyPoints: string[]
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const result = await this.generateJSON({
+      prompt: `Extract the ${params.maxPoints || 5} most important key points from this text:\n\n${params.text}`,
+      schema: {
+        type: 'object',
+        properties: {
+          keyPoints: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'List of key points',
+          },
+        },
+      },
+      model: params.model,
+    })
+
+    if (!result.success) {
+      return { success: false, error: result.error }
+    }
+
+    return {
+      success: true,
+      data: {
+        keyPoints: result.data!.data.keyPoints,
+        usage: result.data!.usage,
+      },
+    }
+  }
+
+  /**
+   * Translate text
+   */
+  async translateText(params: {
+    text: string
+    targetLanguage: string
+    sourceLanguage?: string
+    model?: string
+  }): Promise<IntegrationResponse<{
+    translatedText: string
+    usage: ClaudeCompletionResponse['usage']
+  }>> {
+    const sourceInfo = params.sourceLanguage ? ` from ${params.sourceLanguage}` : ''
+    const completion = await this.createCompletion({
+      model: params.model || this.defaultModel,
+      messages: [
+        {
+          role: 'user',
+          content: `Translate the following text${sourceInfo} to ${params.targetLanguage}:\n\n${params.text}`,
+        },
+      ],
+      max_tokens: 4096,
+    })
+
+    if (!completion.success) {
+      return { success: false, error: completion.error }
+    }
+
+    const response = completion.data!
+    const translatedText = response.content
+      .filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('')
+
+    return {
+      success: true,
+      data: {
+        translatedText,
+        usage: response.usage,
+      },
+    }
+  }
+
+  // ==================== Usage Tracking ====================
+
+  /**
+   * Get usage statistics
+   */
+  getUsageStats(): IntegrationResponse<ClaudeUsageStats> {
+    return {
+      success: true,
+      data: { ...this.usageStats },
+    }
+  }
+
+  /**
+   * Reset usage statistics
+   */
+  resetUsageStats(): IntegrationResponse<void> {
+    this.usageStats = {
+      total_input_tokens: 0,
+      total_output_tokens: 0,
+      total_cache_creation_tokens: 0,
+      total_cache_read_tokens: 0,
+      total_requests: 0,
+      estimated_cost: 0,
+      by_model: {},
+    }
+
+    return {
+      success: true,
+      data: undefined,
+    }
+  }
+
+  // ==================== Prompt Caching ====================
+
+  /**
+   * Enable prompt caching for long system prompts
+   */
+  enablePromptCaching(systemPrompt: string): Array<{
+    type: 'text'
+    text: string
+    cache_control?: { type: 'ephemeral' }
+  }> {
+    // Split into blocks, cache the last block if it's long enough
+    const blocks = systemPrompt.split('\n\n')
+    const result: Array<{
+      type: 'text'
+      text: string
+      cache_control?: { type: 'ephemeral' }
+    }> = []
+
+    for (let i = 0; i < blocks.length; i++) {
+      const isLast = i === blocks.length - 1
+      const text = blocks[i]
+
+      result.push({
+        type: 'text',
+        text,
+        // Cache the last block if it's substantial (>1000 chars)
+        cache_control: isLast && text.length > 1000 ? { type: 'ephemeral' } : undefined,
+      })
+    }
+
+    return result
+  }
+
+  // ==================== Model Information ====================
 
   /**
    * Get available models

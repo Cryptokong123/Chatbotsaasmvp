@@ -5,11 +5,17 @@
  * - Bot Framework integration
  * - Microsoft Graph API
  * - Adaptive Cards
+ * - Teams/Channel management
+ * - Meeting management
+ * - Tab management
+ * - File operations
+ * - Reactions
+ * - Notifications
  * - Enterprise SSO
- * - Teams Apps
- * - Meeting extensions
  * - Message extensions
- * - Tabs
+ * - Call/Meeting bots
+ * - Activity feed
+ * - Proactive messaging
  */
 
 import { BaseIntegrationAdapter } from '../base-adapter'
@@ -36,6 +42,131 @@ interface AdaptiveCard {
   version: string
   body: any[]
   actions?: any[]
+}
+
+interface TeamsChannel {
+  id?: string
+  displayName: string
+  description?: string
+  email?: string
+  webUrl?: string
+  membershipType?: 'standard' | 'private' | 'shared'
+  createdDateTime?: string
+}
+
+interface Team {
+  id?: string
+  displayName: string
+  description?: string
+  visibility?: 'private' | 'public'
+  webUrl?: string
+  isArchived?: boolean
+  memberSettings?: {
+    allowCreateUpdateChannels?: boolean
+    allowDeleteChannels?: boolean
+    allowAddRemoveApps?: boolean
+    allowCreateUpdateRemoveTabs?: boolean
+    allowCreateUpdateRemoveConnectors?: boolean
+  }
+  guestSettings?: {
+    allowCreateUpdateChannels?: boolean
+    allowDeleteChannels?: boolean
+  }
+  funSettings?: {
+    allowGiphy?: boolean
+    giphyContentRating?: 'strict' | 'moderate'
+    allowStickersAndMemes?: boolean
+    allowCustomMemes?: boolean
+  }
+}
+
+interface TeamsMeeting {
+  id?: string
+  subject: string
+  startDateTime: string
+  endDateTime: string
+  joinWebUrl?: string
+  participants?: {
+    organizer?: { identity: { user: { id: string } } }
+    attendees?: Array<{ identity: { user: { id: string } }; role?: string }>
+  }
+  isOnlineMeeting?: boolean
+  onlineMeetingProvider?: 'teamsForBusiness'
+  allowedPresenters?: 'everyone' | 'organization' | 'roleIsPresenter'
+}
+
+interface TeamsTab {
+  id?: string
+  name: string
+  teamsAppId: string
+  configuration: {
+    entityId?: string
+    contentUrl?: string
+    websiteUrl?: string
+    removeUrl?: string
+  }
+  webUrl?: string
+}
+
+interface TeamsApp {
+  id: string
+  externalId?: string
+  displayName: string
+  distributionMethod?: 'store' | 'organization' | 'sideloaded'
+}
+
+interface TeamsFile {
+  id: string
+  name: string
+  webUrl?: string
+  size?: number
+  createdDateTime?: string
+  lastModifiedDateTime?: string
+  downloadUrl?: string
+}
+
+interface TeamsReaction {
+  reactionType: 'like' | 'angry' | 'sad' | 'laugh' | 'heart' | 'surprised'
+  createdDateTime?: string
+  user?: { id: string; displayName: string }
+}
+
+interface TeamsNotification {
+  topic: {
+    source: 'entityUrl' | 'text'
+    value: string
+  }
+  activityType: string
+  previewText: {
+    content: string
+  }
+  templateParameters?: Array<{
+    name: string
+    value: string
+  }>
+}
+
+interface TeamsCall {
+  id: string
+  state?: 'establishing' | 'established' | 'terminating' | 'terminated'
+  direction?: 'incoming' | 'outgoing'
+  subject?: string
+  callChainId?: string
+  source?: { identity: { user?: { id: string } } }
+  targets?: Array<{ identity: { user?: { id: string } } }>
+}
+
+interface TaskModule {
+  type: 'continue' | 'message'
+  value?: {
+    title?: string
+    height?: number | 'small' | 'medium' | 'large'
+    width?: number | 'small' | 'medium' | 'large'
+    url?: string
+    card?: AdaptiveCard
+  }
+  title?: string
+  text?: string
 }
 
 export class TeamsAdapter extends BaseIntegrationAdapter {
@@ -510,6 +641,597 @@ export class TeamsAdapter extends BaseIntegrationAdapter {
   }
 
   // ============================================================================
+  // CHANNEL OPERATIONS
+  // ============================================================================
+
+  async createChannel(teamId: string, channel: Partial<TeamsChannel>): Promise<IntegrationResponse<TeamsChannel>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/channels`, channel)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listChannels(teamId: string): Promise<IntegrationResponse<{ channels: TeamsChannel[] }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/channels`)
+      return result.success
+        ? { success: true, data: { channels: result.data.value } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getChannel(teamId: string, channelId: string): Promise<IntegrationResponse<TeamsChannel>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/channels/${channelId}`)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateChannel(teamId: string, channelId: string, updates: Partial<TeamsChannel>): Promise<IntegrationResponse<TeamsChannel>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('PATCH', `/teams/${teamId}/channels/${channelId}`, updates)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteChannel(teamId: string, channelId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('DELETE', `/teams/${teamId}/channels/${channelId}`)
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getChannelMessages(teamId: string, channelId: string, limit: number = 50): Promise<IntegrationResponse<{ messages: TeamsMessage[] }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/channels/${channelId}/messages?$top=${limit}`)
+      return result.success
+        ? { success: true, data: { messages: result.data.value } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async pinMessage(teamId: string, channelId: string, messageId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/channels/${channelId}/messages/${messageId}/pin`, {})
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async unpinMessage(teamId: string, channelId: string, messageId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/channels/${channelId}/messages/${messageId}/unpin`, {})
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // TEAM OPERATIONS
+  // ============================================================================
+
+  async createTeam(team: Partial<Team>): Promise<IntegrationResponse<Team>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', '/teams', team)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTeam(teamId: string): Promise<IntegrationResponse<Team>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}`)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listTeams(userId?: string): Promise<IntegrationResponse<{ teams: Team[] }>> {
+    try {
+      await this.ensureConnected()
+
+      const endpoint = userId ? `/users/${userId}/joinedTeams` : '/me/joinedTeams'
+      const result = await this.graphRequest('GET', endpoint)
+      return result.success
+        ? { success: true, data: { teams: result.data.value } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateTeam(teamId: string, updates: Partial<Team>): Promise<IntegrationResponse<Team>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('PATCH', `/teams/${teamId}`, updates)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async archiveTeam(teamId: string, shouldSetSpoSiteReadOnlyForMembers?: boolean): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/archive`, {
+        shouldSetSpoSiteReadOnlyForMembers: shouldSetSpoSiteReadOnlyForMembers || false,
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async cloneTeam(teamId: string, params: {
+    displayName: string
+    description?: string
+    mailNickname: string
+    partsToClone: string[]
+    visibility?: 'private' | 'public'
+  }): Promise<IntegrationResponse<{ teamId: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/clone`, params)
+      return result.success ? { success: true, data: { teamId: result.data.id } } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // MEETING OPERATIONS
+  // ============================================================================
+
+  async createMeeting(meeting: Partial<TeamsMeeting>): Promise<IntegrationResponse<TeamsMeeting>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', '/me/onlineMeetings', meeting)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateMeeting(meetingId: string, updates: Partial<TeamsMeeting>): Promise<IntegrationResponse<TeamsMeeting>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('PATCH', `/me/onlineMeetings/${meetingId}`, updates)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async cancelMeeting(meetingId: string, comment?: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/me/events/${meetingId}/cancel`, { comment })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getMeeting(meetingId: string): Promise<IntegrationResponse<TeamsMeeting>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/me/onlineMeetings/${meetingId}`)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listMeetings(startDate?: string, endDate?: string): Promise<IntegrationResponse<{ meetings: TeamsMeeting[] }>> {
+    try {
+      await this.ensureConnected()
+
+      let endpoint = '/me/onlineMeetings'
+      if (startDate && endDate) {
+        endpoint += `?$filter=startDateTime ge '${startDate}' and endDateTime le '${endDate}'`
+      }
+
+      const result = await this.graphRequest('GET', endpoint)
+      return result.success
+        ? { success: true, data: { meetings: result.data.value } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // TAB MANAGEMENT
+  // ============================================================================
+
+  async addTab(teamId: string, channelId: string, tab: Partial<TeamsTab>): Promise<IntegrationResponse<TeamsTab>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/channels/${channelId}/tabs`, tab)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async removeTab(teamId: string, channelId: string, tabId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('DELETE', `/teams/${teamId}/channels/${channelId}/tabs/${tabId}`)
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async updateTab(teamId: string, channelId: string, tabId: string, updates: Partial<TeamsTab>): Promise<IntegrationResponse<TeamsTab>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('PATCH', `/teams/${teamId}/channels/${channelId}/tabs/${tabId}`, updates)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listTabs(teamId: string, channelId: string): Promise<IntegrationResponse<{ tabs: TeamsTab[] }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/channels/${channelId}/tabs`)
+      return result.success
+        ? { success: true, data: { tabs: result.data.value } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async getTab(teamId: string, channelId: string, tabId: string): Promise<IntegrationResponse<TeamsTab>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/channels/${channelId}/tabs/${tabId}`)
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // APP CATALOG
+  // ============================================================================
+
+  async installApp(teamId: string, teamsAppId: string): Promise<IntegrationResponse<{ installationId: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/installedApps`, {
+        'teamsApp@odata.bind': `https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/${teamsAppId}`,
+      })
+      return result.success ? { success: true, data: { installationId: result.data.id } } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async uninstallApp(teamId: string, installationId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('DELETE', `/teams/${teamId}/installedApps/${installationId}`)
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listInstalledApps(teamId: string): Promise<IntegrationResponse<{ apps: TeamsApp[] }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/installedApps?$expand=teamsApp`)
+      return result.success
+        ? { success: true, data: { apps: result.data.value.map((a: any) => a.teamsApp) } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async upgradeApp(teamId: string, installationId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/installedApps/${installationId}/upgrade`, {})
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // FILE OPERATIONS
+  // ============================================================================
+
+  async uploadFile(teamId: string, channelId: string, fileName: string, fileContent: Buffer | Blob): Promise<IntegrationResponse<TeamsFile>> {
+    try {
+      await this.ensureConnected()
+
+      // First get the drive ID for the channel
+      const driveResult = await this.graphRequest('GET', `/teams/${teamId}/channels/${channelId}/filesFolder`)
+      if (!driveResult.success) {
+        return { success: false, error: driveResult.error }
+      }
+
+      const driveId = driveResult.data.parentReference.driveId
+      const folderId = driveResult.data.id
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${folderId}:/${fileName}:/content`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${this.graphAccessToken}`,
+              'Content-Type': 'application/octet-stream',
+            },
+            body: fileContent,
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return result.success ? { success: true, data: result.data } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async downloadFile(driveId: string, itemId: string): Promise<IntegrationResponse<{ content: ArrayBuffer }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${itemId}/content`,
+          {
+            headers: {
+              Authorization: `Bearer ${this.graphAccessToken}`,
+            },
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.arrayBuffer()
+      })
+
+      return result.success ? { success: true, data: { content: result.data } } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listFiles(teamId: string, channelId: string): Promise<IntegrationResponse<{ files: TeamsFile[] }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/channels/${channelId}/filesFolder/children`)
+      return result.success
+        ? { success: true, data: { files: result.data.value } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async deleteFile(driveId: string, itemId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('DELETE', `/drives/${driveId}/items/${itemId}`)
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async shareFile(driveId: string, itemId: string, recipients: string[], message?: string): Promise<IntegrationResponse<{ link: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/drives/${driveId}/items/${itemId}/createLink`, {
+        type: 'view',
+        scope: 'organization',
+        recipients,
+        message,
+      })
+      return result.success ? { success: true, data: { link: result.data.link.webUrl } } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // REACTIONS
+  // ============================================================================
+
+  async addReaction(teamId: string, channelId: string, messageId: string, reactionType: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions`, {
+        reactionType,
+      })
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async removeReaction(teamId: string, channelId: string, messageId: string, reactionId: string): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('DELETE', `/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions/${reactionId}`)
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async listReactions(teamId: string, channelId: string, messageId: string): Promise<IntegrationResponse<{ reactions: TeamsReaction[] }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('GET', `/teams/${teamId}/channels/${channelId}/messages/${messageId}/reactions`)
+      return result.success
+        ? { success: true, data: { reactions: result.data.value } }
+        : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // NOTIFICATIONS
+  // ============================================================================
+
+  async sendActivityFeedNotification(params: {
+    userId: string
+    notification: TeamsNotification
+  }): Promise<IntegrationResponse<void>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.graphRequest('POST', `/users/${params.userId}/teamwork/sendActivityNotification`, params.notification)
+      return result.success ? { success: true, data: undefined } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  async sendProactiveMessage(params: {
+    conversationReference: any
+    message: any
+  }): Promise<IntegrationResponse<{ messageId: string }>> {
+    try {
+      await this.ensureConnected()
+
+      const result = await this.makeRequest(async () => {
+        const response = await fetch(
+          `${this.serviceUrl}/v3/conversations`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${this.graphAccessToken}`,
+            },
+            body: JSON.stringify(params),
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+        }
+
+        return await response.json()
+      })
+
+      return result.success ? { success: true, data: { messageId: result.data.id } } : { success: false, error: result.error }
+    } catch (error: any) {
+      return { success: false, error: this.formatError(error) }
+    }
+  }
+
+  // ============================================================================
+  // TASK MODULES (MESSAGE EXTENSIONS)
+  // ============================================================================
+
+  createTaskModule(params: {
+    type: 'continue' | 'message'
+    title?: string
+    card?: AdaptiveCard
+    url?: string
+    height?: number | 'small' | 'medium' | 'large'
+    width?: number | 'small' | 'medium' | 'large'
+    text?: string
+  }): TaskModule {
+    if (params.type === 'message') {
+      return {
+        type: 'message',
+        title: params.title,
+        text: params.text,
+      }
+    }
+
+    return {
+      type: 'continue',
+      value: {
+        title: params.title,
+        height: params.height || 'medium',
+        width: params.width || 'medium',
+        url: params.url,
+        card: params.card,
+      },
+    }
+  }
+
+  // ============================================================================
   // MICROSOFT GRAPH API
   // ============================================================================
 
@@ -526,7 +1248,7 @@ export class TeamsAdapter extends BaseIntegrationAdapter {
             grant_type: 'client_credentials',
             client_id: this.botId!,
             client_secret: this.appPassword!,
-            scope: 'https://api.botframework.com/.default',
+            scope: 'https://graph.microsoft.com/.default',
           }),
         }
       )
@@ -550,6 +1272,34 @@ export class TeamsAdapter extends BaseIntegrationAdapter {
     }
   }
 
+  private async graphRequest(method: string, endpoint: string, body?: any): Promise<IntegrationResponse<any>> {
+    return await this.makeRequest(async () => {
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Authorization': `Bearer ${this.graphAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+
+      if (body) {
+        options.body = JSON.stringify(body)
+      }
+
+      const response = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, options)
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+      }
+
+      if (response.status === 204) {
+        return undefined
+      }
+
+      return await response.json()
+    })
+  }
+
   async getUserProfile(userId: string): Promise<IntegrationResponse<{
     id: string
     name?: string
@@ -559,22 +1309,7 @@ export class TeamsAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
 
-      const result = await this.makeRequest(async () => {
-        const response = await fetch(
-          `https://graph.microsoft.com/v1.0/users/${userId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${this.graphAccessToken}`,
-            },
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${await response.text()}`)
-        }
-
-        return await response.json()
-      })
+      const result = await this.graphRequest('GET', `/users/${userId}`)
 
       if (!result.success || !result.data) {
         return {
