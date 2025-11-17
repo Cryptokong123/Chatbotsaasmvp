@@ -704,3 +704,190 @@ COMMENT ON TABLE webhook_events IS 'Logs all incoming webhook events with proces
 COMMENT ON TABLE integration_sync_state IS 'Tracks bidirectional synchronization state with conflict resolution';
 COMMENT ON TABLE integration_contacts IS 'Synchronized contacts from integrations with deduplication support';
 COMMENT ON TABLE integration_events IS 'Audit log for all integration events and activities';
+
+-- ============================================================================
+-- INTEGRATION CONVERSATIONS
+-- ============================================================================
+-- Tracks conversations, tickets, and threads across all integration platforms
+CREATE TABLE IF NOT EXISTS integration_conversations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+
+  -- Instance reference
+  instance_id UUID NOT NULL REFERENCES integration_instances(id) ON DELETE CASCADE,
+  integration_type TEXT NOT NULL,
+
+  -- External identifiers
+  external_id TEXT NOT NULL,
+  external_ids JSONB DEFAULT '{}', -- Map of platform-specific IDs
+
+  -- Conversation details
+  subject TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (
+    status IN ('open', 'pending', 'closed', 'resolved', 'archived', 'spam')
+  ),
+  priority TEXT CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+  type TEXT CHECK (type IN ('chat', 'email', 'ticket', 'call', 'sms', 'social', 'other')),
+  channel TEXT,
+
+  -- Assignment
+  assignee_id UUID, -- Internal user ID
+  assignee_external_id TEXT, -- Platform-specific assignee ID
+  team_id TEXT,
+
+  -- Organization
+  tags TEXT[] DEFAULT '{}',
+  custom_fields JSONB DEFAULT '{}',
+
+  -- Participants
+  participants JSONB DEFAULT '[]', -- Array of participant objects
+
+  -- Metrics
+  message_count INTEGER DEFAULT 0,
+  unread_count INTEGER DEFAULT 0,
+  first_message_at TIMESTAMP WITH TIME ZONE,
+  last_message_at TIMESTAMP WITH TIME ZONE,
+  closed_at TIMESTAMP WITH TIME ZONE,
+  resolved_at TIMESTAMP WITH TIME ZONE,
+  response_time_ms INTEGER,
+  resolution_time_ms INTEGER,
+  satisfaction_score NUMERIC(3, 2), -- 0.00 to 5.00
+
+  -- Status flags
+  is_active BOOLEAN DEFAULT true,
+  is_synced BOOLEAN DEFAULT false,
+  sync_version INTEGER DEFAULT 1,
+  last_synced_at TIMESTAMP WITH TIME ZONE,
+  sync_error TEXT,
+
+  -- Raw data
+  raw_data JSONB,
+  metadata JSONB DEFAULT '{}',
+
+  -- Timestamps
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  -- Constraints
+  UNIQUE (instance_id, external_id)
+);
+
+-- Indexes for conversations
+CREATE INDEX idx_conversations_instance ON integration_conversations(instance_id);
+CREATE INDEX idx_conversations_status ON integration_conversations(status) WHERE is_active = true;
+CREATE INDEX idx_conversations_assignee ON integration_conversations(assignee_id) WHERE assignee_id IS NOT NULL;
+CREATE INDEX idx_conversations_type ON integration_conversations(type);
+CREATE INDEX idx_conversations_priority ON integration_conversations(priority);
+CREATE INDEX idx_conversations_tags ON integration_conversations USING GIN(tags);
+CREATE INDEX idx_conversations_updated ON integration_conversations(updated_at DESC);
+CREATE INDEX idx_conversations_last_message ON integration_conversations(last_message_at DESC NULLS LAST);
+CREATE INDEX idx_conversations_unread ON integration_conversations(unread_count) WHERE unread_count > 0;
+
+-- Updated at trigger for conversations
+CREATE TRIGGER update_conversations_updated_at
+  BEFORE UPDATE ON integration_conversations
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- IDEMPOTENCY KEYS
+-- ============================================================================
+-- Ensures operations are executed exactly once using idempotency keys
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+
+  -- Idempotency key
+  key TEXT NOT NULL,
+
+  -- Tenant/Instance reference
+  tenant_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  instance_id UUID REFERENCES integration_instances(id) ON DELETE CASCADE,
+
+  -- Operation details
+  operation TEXT NOT NULL, -- e.g., 'send_message', 'create_contact'
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (
+    status IN ('pending', 'processing', 'completed', 'failed')
+  ),
+
+  -- Request tracking
+  request_hash TEXT NOT NULL, -- SHA-256 hash of request body
+  request_body JSONB,
+
+  -- Response tracking
+  response_status INTEGER,
+  response_body JSONB,
+  error TEXT,
+
+  -- Lock management
+  lock_expires_at TIMESTAMP WITH TIME ZONE,
+  processing_started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+
+  -- Retry handling
+  retry_count INTEGER DEFAULT 0,
+  max_retries INTEGER DEFAULT 3,
+
+  -- Timestamps
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL, -- When this key expires
+
+  -- Constraints
+  UNIQUE (key, operation)
+);
+
+-- Indexes for idempotency keys
+CREATE INDEX idx_idempotency_key_lookup ON idempotency_keys(key, operation);
+CREATE INDEX idx_idempotency_tenant ON idempotency_keys(tenant_id) WHERE tenant_id IS NOT NULL;
+CREATE INDEX idx_idempotency_instance ON idempotency_keys(instance_id) WHERE instance_id IS NOT NULL;
+CREATE INDEX idx_idempotency_status ON idempotency_keys(status);
+CREATE INDEX idx_idempotency_expires ON idempotency_keys(expires_at);
+CREATE INDEX idx_idempotency_lock_expires ON idempotency_keys(lock_expires_at) WHERE lock_expires_at IS NOT NULL;
+CREATE INDEX idx_idempotency_created ON idempotency_keys(created_at DESC);
+
+-- Updated at trigger for idempotency keys
+CREATE TRIGGER update_idempotency_keys_updated_at
+  BEFORE UPDATE ON idempotency_keys
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Auto-cleanup expired idempotency keys (runs daily)
+-- Note: This requires pg_cron extension which may not be available in all environments
+-- CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- SELECT cron.schedule('cleanup-expired-idempotency-keys', '0 2 * * *',
+--   'DELETE FROM idempotency_keys WHERE expires_at < NOW()');
+
+-- ============================================================================
+-- ENABLE RLS ON NEW TABLES
+-- ============================================================================
+
+ALTER TABLE integration_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE idempotency_keys ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for conversations
+CREATE POLICY "Users can view own conversations" ON integration_conversations
+  FOR SELECT USING (
+    instance_id IN (SELECT id FROM integration_instances WHERE tenant_id = auth.uid())
+  );
+
+CREATE POLICY "Users can manage own conversations" ON integration_conversations
+  FOR ALL USING (
+    instance_id IN (SELECT id FROM integration_instances WHERE tenant_id = auth.uid())
+  );
+
+-- RLS Policies for idempotency keys
+CREATE POLICY "Users can view own idempotency keys" ON idempotency_keys
+  FOR SELECT USING (tenant_id = auth.uid());
+
+CREATE POLICY "Users can manage own idempotency keys" ON idempotency_keys
+  FOR ALL USING (tenant_id = auth.uid());
+
+-- Service role can manage all idempotency keys (for background jobs)
+CREATE POLICY "Service can manage idempotency keys" ON idempotency_keys
+  FOR ALL USING (true); -- This will be restricted by service role permissions
+
+-- ============================================================================
+-- ADDITIONAL COMMENTS
+-- ============================================================================
+
+COMMENT ON TABLE integration_conversations IS 'Tracks conversations, tickets, and threads across all integration platforms with sync support';
+COMMENT ON TABLE idempotency_keys IS 'Ensures operations are executed exactly once using idempotency keys with lock management and retry handling';

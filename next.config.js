@@ -4,6 +4,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   images: {
     domains: ['localhost'],
@@ -89,13 +91,6 @@ const nextConfig = {
     }
 
     return config
-  },
-
-  // Experimental features for better performance
-  experimental: {
-    ...nextConfig.experimental,
-    optimizeCss: true,
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 }
 
