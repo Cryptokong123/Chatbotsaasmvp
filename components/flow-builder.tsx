@@ -116,6 +116,8 @@ export function FlowBuilder({ initialFlow, onSave, onTest }: FlowBuilderProps) {
       edges,
       entry_node_id: nodes.find((n) => n.type === 'start')?.id,
       is_active: initialFlow?.is_active || false,
+      bot_id: initialFlow?.bot_id || '',
+      variables: initialFlow?.variables || {},
     }
 
     const result = validateFlow(currentFlow)
