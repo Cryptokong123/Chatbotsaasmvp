@@ -43,3 +43,56 @@ Please check if the network is available.
     at async Span.traceAsyncFn (/home/user/Chatbotsaasmvp/node_modules/next/dist/trace/trace.js:151:20)
     at async /home/user/Chatbotsaasmvp/node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js:76:87
     at async Span.traceAsyncFn (/home/user/Chatbotsaasmvp/node_modules/next/dist/trace/trace.js:151:20)
+Failed to compile.
+
+app/layout.tsx
+`next/font` error:
+Failed to fetch `Inter` from Google Fonts.
+
+./lib/integrations/base-adapter.ts
+Error: 
+  [31mx[0m Expected '{', got 'abstract'
+     ,-[[36;1;4m/home/user/Chatbotsaasmvp/lib/integrations/base-adapter.ts[0m:145:1]
+ [2m145[0m | // BASE ADAPTER
+ [2m146[0m | // ============================================================================
+ [2m147[0m | 
+ [2m148[0m | export abstract class BaseIntegrationAdapter {
+     : [31;1m       ^^^^^^^^[0m
+ [2m149[0m |   protected config: IntegrationConfig
+ [2m150[0m |   protected rateLimiter?: RateLimiter
+ [2m151[0m |   protected circuitBreaker: CircuitBreaker
+     `----
+
+Caused by:
+    Syntax Error
+
+Stack backtrace:
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: _ZZN4node14ThreadPoolWork12ScheduleWorkEvENUlP9uv_work_sE_4_FUNES2_
+  14: worker
+             at /home/iojs/build/ws/out/../deps/uv/src/threadpool.c:123:5
+  15: start_thread
+             at ./nptl/pthread_create.c:447:8
+  16: __GI___clone3
+             at ./misc/../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Import trace for requested module:
+./lib/integrations/base-adapter.ts
+./lib/integrations/adapters/copper-adapter.ts
+./lib/integrations/registry-loader.ts
+./app/api/integrations/route.ts
+
+
+> Build failed because of webpack errors
