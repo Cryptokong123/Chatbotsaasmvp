@@ -145,7 +145,7 @@ class CircuitBreaker {
 // BASE ADAPTER
 // ============================================================================
 
-export abstract class BaseIntegrationAdapter {
+export class BaseIntegrationAdapter {
   protected config: IntegrationConfig
   protected rateLimiter?: RateLimiter
   protected circuitBreaker: CircuitBreaker
@@ -156,7 +156,7 @@ export abstract class BaseIntegrationAdapter {
     requestsSuccessful: 0,
     requestsFailed: 0,
     totalLatency: 0,
-    lastRequest?: Date,
+    lastRequest: undefined as Date | undefined,
   }
 
   constructor(config: IntegrationConfig) {
@@ -175,13 +175,24 @@ export abstract class BaseIntegrationAdapter {
   }
 
   // ============================================================================
-  // ABSTRACT METHODS (must be implemented by subclasses)
+  // METHODS (must be implemented/overridden by subclasses)
   // ============================================================================
 
-  abstract getCapabilities(): IntegrationCapabilities
-  abstract connect(): Promise<IntegrationResponse<void>>
-  abstract disconnect(): Promise<IntegrationResponse<void>>
-  abstract testConnection(): Promise<IntegrationResponse<boolean>>
+  getCapabilities(): IntegrationCapabilities {
+    throw new Error('getCapabilities() must be implemented by subclass')
+  }
+
+  connect(): Promise<IntegrationResponse<void>> {
+    throw new Error('connect() must be implemented by subclass')
+  }
+
+  disconnect(): Promise<IntegrationResponse<void>> {
+    throw new Error('disconnect() must be implemented by subclass')
+  }
+
+  testConnection(): Promise<IntegrationResponse<boolean>> {
+    throw new Error('testConnection() must be implemented by subclass')
+  }
 
   // ============================================================================
   // CONNECTION MANAGEMENT

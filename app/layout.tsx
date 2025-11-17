@@ -1,14 +1,10 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { Providers } from '@/lib/providers'
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  fallback: ['system-ui', 'arial'],
-})
+// Using system fonts for reliability
+const fontClass = 'font-sans'
 
 export const metadata: Metadata = {
   title: 'ChatForge AI - Build Powerful AI Chatbots in Minutes',
@@ -29,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={fontClass}>
         <Providers>
           {children}
           <Toaster />
