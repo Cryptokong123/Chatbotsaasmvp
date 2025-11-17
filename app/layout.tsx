@@ -4,7 +4,11 @@ import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { Providers } from '@/lib/providers'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  fallback: ['system-ui', 'arial'],
+})
 
 export const metadata: Metadata = {
   title: 'ChatForge AI - Build Powerful AI Chatbots in Minutes',

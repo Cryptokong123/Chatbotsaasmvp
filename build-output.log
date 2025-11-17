@@ -1,0 +1,98 @@
+
+> chatforge-ai@0.1.0 build
+> next build
+
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 14.1.0
+   - Experiments (use at your own risk):
+     · optimizeCss
+
+   Creating an optimized production build ...
+Failed to fetch font `Inter`.
+URL: https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap
+
+Please check if the network is available.
+
+Retrying 1/3...
+Failed to fetch font `Inter`.
+URL: https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap
+
+Please check if the network is available.
+
+Retrying 2/3...
+Failed to fetch font `Inter`.
+URL: https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap
+
+Please check if the network is available.
+
+Retrying 3/3...
+Error [NextFontError]: Failed to fetch font `Inter`.
+URL: https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap
+
+Please check if the network is available.
+    at nextFontError (/home/user/Chatbotsaasmvp/node_modules/next/dist/compiled/@next/font/dist/next-font-error.js:8:17)
+    at /home/user/Chatbotsaasmvp/node_modules/next/dist/compiled/@next/font/dist/google/fetch-css-from-google-fonts.js:58:53
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async retry (/home/user/Chatbotsaasmvp/node_modules/next/dist/compiled/@next/font/dist/google/retry.js:11:12)
+    at async fetchCSSFromGoogleFonts (/home/user/Chatbotsaasmvp/node_modules/next/dist/compiled/@next/font/dist/google/fetch-css-from-google-fonts.js:38:23)
+    at async nextFontGoogleFontLoader (/home/user/Chatbotsaasmvp/node_modules/next/dist/compiled/@next/font/dist/google/loader.js:76:15)
+    at async Span.traceAsyncFn (/home/user/Chatbotsaasmvp/node_modules/next/dist/trace/trace.js:151:20)
+    at async /home/user/Chatbotsaasmvp/node_modules/next/dist/build/webpack/loaders/next-font-loader/index.js:76:87
+    at async Span.traceAsyncFn (/home/user/Chatbotsaasmvp/node_modules/next/dist/trace/trace.js:151:20)
+Failed to compile.
+
+app/layout.tsx
+`next/font` error:
+Failed to fetch `Inter` from Google Fonts.
+
+./lib/integrations/base-adapter.ts
+Error: 
+  [31mx[0m Expected '{', got 'abstract'
+     ,-[[36;1;4m/home/user/Chatbotsaasmvp/lib/integrations/base-adapter.ts[0m:145:1]
+ [2m145[0m | // BASE ADAPTER
+ [2m146[0m | // ============================================================================
+ [2m147[0m | 
+ [2m148[0m | export abstract class BaseIntegrationAdapter {
+     : [31;1m       ^^^^^^^^[0m
+ [2m149[0m |   protected config: IntegrationConfig
+ [2m150[0m |   protected rateLimiter?: RateLimiter
+ [2m151[0m |   protected circuitBreaker: CircuitBreaker
+     `----
+
+Caused by:
+    Syntax Error
+
+Stack backtrace:
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: _ZZN4node14ThreadPoolWork12ScheduleWorkEvENUlP9uv_work_sE_4_FUNES2_
+  14: worker
+             at /home/iojs/build/ws/out/../deps/uv/src/threadpool.c:123:5
+  15: start_thread
+             at ./nptl/pthread_create.c:447:8
+  16: __GI___clone3
+             at ./misc/../sysdeps/unix/sysv/linux/x86_64/clone3.S:78
+
+Import trace for requested module:
+./lib/integrations/base-adapter.ts
+./lib/integrations/adapters/copper-adapter.ts
+./lib/integrations/registry-loader.ts
+./app/api/integrations/route.ts
+
+
+> Build failed because of webpack errors
