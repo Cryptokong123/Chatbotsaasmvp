@@ -1221,7 +1221,8 @@ export class HubSpotAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
       const formData = new FormData()
-      formData.append('file', file, fileName)
+      const blob = file instanceof Buffer ? new Blob([file as any]) : file
+      formData.append('file', blob as Blob, fileName)
       if (options?.folderId) formData.append('folderId', options.folderId)
 
       const result = await this.makeRequest(async () => {

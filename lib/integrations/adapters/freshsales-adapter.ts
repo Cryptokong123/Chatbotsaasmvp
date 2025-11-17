@@ -925,7 +925,8 @@ export class FreshsalesAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
       const formData = new FormData()
-      formData.append('file', new Blob([file]), fileName)
+      const blob = file instanceof Buffer ? new Blob([file as any]) : file
+      formData.append('file', blob as Blob, fileName)
       formData.append('targetable_type', targetableType)
       formData.append('targetable_id', targetableId.toString())
 
