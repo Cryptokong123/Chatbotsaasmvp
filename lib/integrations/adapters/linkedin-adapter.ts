@@ -1237,7 +1237,7 @@ export class LinkedInAdapter extends BaseIntegrationAdapter {
   }
 
   async getMemberIdentity(): Promise<IntegrationResponse<{ id: string; vanityName: string }>> {
-    return this.getProfile('id,vanityName')
+    return this.getProfile('id,vanityName') as Promise<IntegrationResponse<{ id: string; vanityName: string }>>
   }
 
   async getProfilePictureUrl(): Promise<IntegrationResponse<string | null>> {
