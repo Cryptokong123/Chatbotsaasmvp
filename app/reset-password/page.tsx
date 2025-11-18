@@ -19,10 +19,10 @@ export default function ResetPasswordPage() {
   const [hasSession, setHasSession] = useState(false)
   const router = useRouter()
   const { toast} = useToast()
-  const supabase = createBrowserSupabaseClient()
 
   useEffect(() => {
     const checkSession = async () => {
+      const supabase = createBrowserSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
       setHasSession(!!session)
     }
@@ -53,6 +53,7 @@ export default function ResetPasswordPage() {
     setLoading(true)
 
     try {
+      const supabase = createBrowserSupabaseClient()
       const { error } = await supabase.auth.updateUser({
         password: password,
       })

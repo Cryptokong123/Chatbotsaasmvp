@@ -1,5 +1,9 @@
 'use client'
 
+// Force dynamic rendering for all dashboard pages
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -21,7 +25,6 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
-  const supabase = createBrowserSupabaseClient()
   const { theme, setTheme } = useTheme()
 
   // Keyboard shortcuts
@@ -40,6 +43,7 @@ export default function DashboardLayout({
 
   const checkAuth = async () => {
     try {
+      const supabase = createBrowserSupabaseClient()
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
@@ -56,6 +60,7 @@ export default function DashboardLayout({
   }
 
   const handleLogout = async () => {
+    const supabase = createBrowserSupabaseClient()
     await supabase.auth.signOut()
     router.push('/')
     router.refresh()
