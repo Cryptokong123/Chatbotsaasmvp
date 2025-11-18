@@ -1,78 +1,63 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Bot, Check } from 'lucide-react'
 
 export default function LandingPage() {
+  const [typedText, setTypedText] = useState('')
+  const [showDeployInstantly, setShowDeployInstantly] = useState(false)
+  const fullText = 'Build AI chatbots.'
+
+  useEffect(() => {
+    let currentIndex = 0
+    const typingInterval = setInterval(() => {
+      if (currentIndex <= fullText.length) {
+        setTypedText(fullText.slice(0, currentIndex))
+        currentIndex++
+      } else {
+        clearInterval(typingInterval)
+        setTimeout(() => setShowDeployInstantly(true), 300)
+      }
+    }, 80)
+
+    return () => clearInterval(typingInterval)
+  }, [])
+
+  // Platform logos for infinite scroll
+  const platforms = [
+    { name: 'WhatsApp', icon: '💬' },
+    { name: 'Telegram', icon: '✈️' },
+    { name: 'Slack', icon: '💼' },
+    { name: 'Discord', icon: '🎮' },
+    { name: 'Messenger', icon: '📱' },
+    { name: 'Instagram', icon: '📸' },
+    { name: 'Teams', icon: '👥' },
+    { name: 'Twitter', icon: '🐦' },
+  ]
+
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white overflow-hidden">
       {/* Stars Background */}
       <div className="fixed inset-0 pointer-events-none">
         {[...Array(50)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-white rounded-full"
+            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
             style={{
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
               opacity: Math.random() * 0.7 + 0.3,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${Math.random() * 2 + 1}s`,
             }}
           />
         ))}
       </div>
 
-      {/* Dot Matrix Clouds */}
-      <div className="fixed inset-0 pointer-events-none opacity-40">
-        {/* Cloud 1 */}
-        <div className="absolute top-20 left-10">
-          <svg width="200" height="80" viewBox="0 0 200 80">
-            <defs>
-              <pattern id="dots1" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="0.8" fill="#666" />
-              </pattern>
-            </defs>
-            <ellipse cx="100" cy="40" rx="90" ry="35" fill="url(#dots1)" />
-          </svg>
-        </div>
-
-        {/* Cloud 2 */}
-        <div className="absolute top-32 right-20">
-          <svg width="180" height="70" viewBox="0 0 180 70">
-            <defs>
-              <pattern id="dots2" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="0.8" fill="#666" />
-              </pattern>
-            </defs>
-            <ellipse cx="90" cy="35" rx="80" ry="30" fill="url(#dots2)" />
-          </svg>
-        </div>
-
-        {/* Cloud 3 */}
-        <div className="absolute top-48 left-1/3">
-          <svg width="220" height="90" viewBox="0 0 220 90">
-            <defs>
-              <pattern id="dots3" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="0.8" fill="#666" />
-              </pattern>
-            </defs>
-            <ellipse cx="110" cy="45" rx="100" ry="40" fill="url(#dots3)" />
-          </svg>
-        </div>
-
-        {/* Cloud 4 */}
-        <div className="absolute top-60 right-1/4">
-          <svg width="160" height="65" viewBox="0 0 160 65">
-            <defs>
-              <pattern id="dots4" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="0.8" fill="#666" />
-              </pattern>
-            </defs>
-            <ellipse cx="80" cy="32" rx="70" ry="28" fill="url(#dots4)" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Dot Matrix City Skyline */}
-      <div className="fixed bottom-0 left-0 right-0 h-64 pointer-events-none">
+      {/* Faded City Skyline */}
+      <div className="fixed bottom-0 left-0 right-0 h-64 pointer-events-none opacity-20">
         <svg className="w-full h-full" viewBox="0 0 1440 256" preserveAspectRatio="none">
           <defs>
             <pattern id="cityDots" x="0" y="0" width="3" height="3" patternUnits="userSpaceOnUse">
@@ -158,8 +143,8 @@ export default function LandingPage() {
         </svg>
       </div>
 
-      {/* Navigation */}
-      <nav className="relative border-b border-white/10 bg-black/50 backdrop-blur-sm">
+      {/* Navigation - Glass Effect */}
+      <nav className="relative bg-black/20 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
@@ -193,42 +178,59 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section with Typing Animation */}
       <section className="relative min-h-[85vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-tight">
-            Build AI chatbots.
+            {typedText}
+            <span className="inline-block w-1 h-20 bg-white ml-1 animate-pulse"></span>
             <br />
-            Deploy instantly.
+            <span
+              className={`transition-all duration-500 ${
+                showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
+              Deploy instantly.
+            </span>
           </h1>
 
-          <p className="text-xl sm:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto">
+          <p
+            className={`text-xl sm:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto transition-all duration-700 delay-300 ${
+              showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+          >
             Every customer deserves instant support. Train your bot on your data,
             <br className="hidden sm:block" />
             embed with one line of code, and scale effortlessly.
           </p>
 
-          <Link href="/register">
-            <Button size="lg" className="bg-white text-black hover:bg-gray-200 text-lg px-10 py-6 rounded-full font-medium">
-              Get Started
-            </Button>
-          </Link>
+          <div className={`transition-all duration-700 delay-500 ${
+            showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}>
+            <Link href="/register">
+              <Button size="lg" className="bg-white text-black hover:bg-gray-200 text-lg px-10 py-6 rounded-full font-medium">
+                Get Started
+              </Button>
+            </Link>
+          </div>
 
-          {/* Feature Pills */}
-          <div className="flex flex-wrap justify-center gap-3 mt-16">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm">
+          {/* Feature Pills - No borders */}
+          <div className={`flex flex-wrap justify-center gap-3 mt-16 transition-all duration-700 delay-700 ${
+            showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full text-sm backdrop-blur-sm">
               <Check className="h-4 w-4 text-gray-400" />
               <span className="text-gray-300">No code required</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full text-sm backdrop-blur-sm">
               <Check className="h-4 w-4 text-gray-400" />
               <span className="text-gray-300">GPT-4 powered</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full text-sm backdrop-blur-sm">
               <Check className="h-4 w-4 text-gray-400" />
               <span className="text-gray-300">Train on your data</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full text-sm backdrop-blur-sm">
               <Check className="h-4 w-4 text-gray-400" />
               <span className="text-gray-300">5-minute setup</span>
             </div>
@@ -236,8 +238,40 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="relative py-32 px-4 sm:px-6 lg:px-8 border-t border-white/10">
+      {/* Platform Logos Infinite Scroll */}
+      <section className="relative py-16 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-center text-gray-500 text-sm mb-8 uppercase tracking-wider">Supports 20+ Platforms</p>
+          <div className="relative flex overflow-hidden">
+            {/* Scrolling container */}
+            <div className="flex animate-scroll-infinite whitespace-nowrap">
+              {/* First set */}
+              {platforms.map((platform, index) => (
+                <div
+                  key={`first-${index}`}
+                  className="inline-flex items-center gap-3 mx-8 px-6 py-3 bg-white/5 rounded-lg backdrop-blur-sm"
+                >
+                  <span className="text-3xl">{platform.icon}</span>
+                  <span className="text-lg font-medium">{platform.name}</span>
+                </div>
+              ))}
+              {/* Duplicate set for seamless loop */}
+              {platforms.map((platform, index) => (
+                <div
+                  key={`second-${index}`}
+                  className="inline-flex items-center gap-3 mx-8 px-6 py-3 bg-white/5 rounded-lg backdrop-blur-sm"
+                >
+                  <span className="text-3xl">{platform.icon}</span>
+                  <span className="text-lg font-medium">{platform.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section - No borders */}
+      <section id="features" className="relative py-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-5xl font-bold mb-6">Everything you need</h2>
@@ -247,7 +281,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="text-center">
+            <div className="text-center transform transition-all duration-300 hover:scale-105">
               <div className="text-4xl mb-4">⚡</div>
               <h3 className="text-2xl font-bold mb-3">Instant Responses</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -255,7 +289,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="text-center">
+            <div className="text-center transform transition-all duration-300 hover:scale-105">
               <div className="text-4xl mb-4">🎯</div>
               <h3 className="text-2xl font-bold mb-3">Smart Training</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -263,7 +297,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="text-center">
+            <div className="text-center transform transition-all duration-300 hover:scale-105">
               <div className="text-4xl mb-4">📊</div>
               <h3 className="text-2xl font-bold mb-3">Live Analytics</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -271,7 +305,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="text-center">
+            <div className="text-center transform transition-all duration-300 hover:scale-105">
               <div className="text-4xl mb-4">🔗</div>
               <h3 className="text-2xl font-bold mb-3">One-Line Embed</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -279,7 +313,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="text-center">
+            <div className="text-center transform transition-all duration-300 hover:scale-105">
               <div className="text-4xl mb-4">💰</div>
               <h3 className="text-2xl font-bold mb-3">Cost Optimization</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -287,7 +321,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="text-center">
+            <div className="text-center transform transition-all duration-300 hover:scale-105">
               <div className="text-4xl mb-4">🎨</div>
               <h3 className="text-2xl font-bold mb-3">Full Customization</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -298,8 +332,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="relative py-32 px-4 sm:px-6 lg:px-8 border-t border-white/10">
+      {/* CTA Section - No borders */}
+      <section className="relative py-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-5xl sm:text-6xl font-bold mb-8">
             Ready to transform
@@ -319,8 +353,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative border-t border-white/10 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Footer - No borders */}
+      <footer className="relative py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div>
@@ -360,11 +394,31 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="border-t border-white/10 pt-8 text-center text-sm text-gray-400">
+          <div className="pt-8 text-center text-sm text-gray-400">
             <p>&copy; 2025 ChatForge AI. All rights reserved.</p>
           </div>
         </div>
       </footer>
+
+      {/* Add custom animations in a style tag */}
+      <style jsx>{`
+        @keyframes scroll-infinite {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        .animate-scroll-infinite {
+          animation: scroll-infinite 30s linear infinite;
+        }
+
+        .animate-scroll-infinite:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
     </div>
   )
 }
