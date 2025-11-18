@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { TrendingUp, TrendingDown, MessageSquare, Users, Clock, ThumbsUp, Activity, Zap, Calendar } from 'lucide-react'
+import { TrendingUp, TrendingDown, MessageSquare, Users, Clock, ThumbsUp, Activity, Zap, Calendar, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -112,12 +112,55 @@ export default function AnalyticsPage() {
       .join(' ')
   }
 
+  const handleExport = async (type: string) => {
+    try {
+      const params = new URLSearchParams({
+        type,
+        period,
+        ...(selectedBot !== 'all' && { botId: selectedBot }),
+      })
+
+      const response = await fetch(`/api/export/analytics?${params}`)
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      // Get the filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/)
+      const filename = filenameMatch ? filenameMatch[1] : `export-${type}-${Date.now()}.csv`
+
+      // Download the file
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast({
+        title: 'Success',
+        description: 'Data exported successfully',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to export data',
+        variant: 'destructive',
+      })
+    }
+  }
+
   if (loading || !analytics) {
     return (
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
-          <p className="text-gray-600">Real-time insights into your bot performance</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Analytics Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400">Real-time insights into your bot performance</p>
         </div>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -135,8 +178,8 @@ export default function AnalyticsPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
-            <p className="text-gray-600">Real-time insights into your bot performance</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Analytics Dashboard</h1>
+            <p className="text-gray-600 dark:text-gray-400">Real-time insights into your bot performance</p>
           </div>
           <Activity className="h-10 w-10 text-primary animate-pulse" />
         </div>
@@ -180,15 +223,64 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Export Section */}
+      <Card className="mb-8 dark:bg-white/5 dark:border-white/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 dark:text-white">
+            <Download className="h-5 w-5" />
+            Export Reports
+          </CardTitle>
+          <CardDescription className="dark:text-gray-400">
+            Download your analytics data as CSV files for Excel or other reporting tools
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button
+              variant="outline"
+              onClick={() => handleExport('conversations')}
+              className="dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Conversations
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleExport('messages')}
+              className="dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Messages
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleExport('bot-performance')}
+              className="dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Bot Performance
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleExport('training-data')}
+              className="dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Training Data
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">Total Conversations</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Conversations</p>
               <MessageSquare className="h-5 w-5 text-blue-500" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{analytics.totalConversations.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{analytics.totalConversations.toLocaleString()}</p>
             <div className="flex items-center gap-1 mt-2">
               {conversationGrowth >= 0 ? (
                 <TrendingUp className="h-4 w-4 text-green-500" />
@@ -202,38 +294,38 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">Total Messages</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Messages</p>
               <Zap className="h-5 w-5 text-purple-500" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{analytics.totalMessages.toLocaleString()}</p>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{analytics.totalMessages.toLocaleString()}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               {analytics.messagesPerConversation} avg per conversation
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">Satisfaction Rate</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Satisfaction Rate</p>
               <ThumbsUp className="h-5 w-5 text-green-500" />
             </div>
-            <p className="text-3xl font-bold text-green-600">{analytics.satisfactionRate}%</p>
-            <p className="text-sm text-gray-600 mt-2">Based on user ratings</p>
+            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{analytics.satisfactionRate}%</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Based on user ratings</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Response Time</p>
               <Clock className="h-5 w-5 text-orange-500" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{analytics.avgResponseTime}s</p>
-            <p className="text-sm text-gray-600 mt-2">Lightning fast responses</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{analytics.avgResponseTime}s</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Lightning fast responses</p>
           </CardContent>
         </Card>
       </div>
@@ -241,10 +333,10 @@ export default function AnalyticsPage() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Conversation Trend */}
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardHeader>
-            <CardTitle>Conversation Trend</CardTitle>
-            <CardDescription>Daily conversation volume over time</CardDescription>
+            <CardTitle className="dark:text-white">Conversation Trend</CardTitle>
+            <CardDescription className="dark:text-gray-400">Daily conversation volume over time</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -275,10 +367,10 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Message Trend */}
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardHeader>
-            <CardTitle>Message Trend</CardTitle>
-            <CardDescription>Daily message volume over time</CardDescription>
+            <CardTitle className="dark:text-white">Message Trend</CardTitle>
+            <CardDescription className="dark:text-gray-400">Daily message volume over time</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -309,10 +401,10 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Peak Hours */}
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardHeader>
-            <CardTitle>Peak Hours</CardTitle>
-            <CardDescription>Conversation volume by hour of day</CardDescription>
+            <CardTitle className="dark:text-white">Peak Hours</CardTitle>
+            <CardDescription className="dark:text-gray-400">Conversation volume by hour of day</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -335,10 +427,10 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Top Intents */}
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardHeader>
-            <CardTitle>Top Intents</CardTitle>
-            <CardDescription>Most common conversation topics</CardDescription>
+            <CardTitle className="dark:text-white">Top Intents</CardTitle>
+            <CardDescription className="dark:text-gray-400">Most common conversation topics</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -367,10 +459,10 @@ export default function AnalyticsPage() {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performing Bots */}
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardHeader>
-            <CardTitle>Top Performing Bots</CardTitle>
-            <CardDescription>Bots with the most conversations</CardDescription>
+            <CardTitle className="dark:text-white">Top Performing Bots</CardTitle>
+            <CardDescription className="dark:text-gray-400">Bots with the most conversations</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -394,10 +486,10 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Response Time Distribution */}
-        <Card>
+        <Card className="dark:bg-white/5 dark:border-white/10">
           <CardHeader>
-            <CardTitle>Response Time Distribution</CardTitle>
-            <CardDescription>How fast your bot responds</CardDescription>
+            <CardTitle className="dark:text-white">Response Time Distribution</CardTitle>
+            <CardDescription className="dark:text-gray-400">How fast your bot responds</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>

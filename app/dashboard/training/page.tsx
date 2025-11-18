@@ -309,9 +309,21 @@ export default function TrainingDataPage() {
         body: formData,
       })
 
-      const result = await response.json()
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        let errorMessage = 'Upload failed'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If JSON parsing fails, try to get text response
+          const errorText = await response.text()
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
+      }
 
-      if (!response.ok) throw new Error(result.error || 'Upload failed')
+      const result = await response.json()
 
       setUploadResult(result.metadata)
 

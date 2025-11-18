@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Save, Eye, EyeOff, BookTemplate } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,6 +21,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -41,8 +49,12 @@ export default function BotConfigurePage() {
   const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(true)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+  const [templateDescription, setTemplateDescription] = useState('')
+  const [savingTemplate, setSavingTemplate] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
+  const { toast} = useToast()
   const supabase = createBrowserSupabaseClient()
 
   useEffect(() => {
@@ -113,6 +125,45 @@ export default function BotConfigurePage() {
     }
   }
 
+  const handleSaveAsTemplate = async () => {
+    setSavingTemplate(true)
+
+    try {
+      const response = await fetch(`/api/bots/${botId}/save-template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateName,
+          templateDescription,
+          category: 'custom',
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save template')
+      }
+
+      toast({
+        title: 'Success',
+        description: `Template "${templateName}" created successfully`,
+      })
+
+      setShowTemplateDialog(false)
+      setTemplateName('')
+      setTemplateDescription('')
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save template',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingTemplate(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -162,6 +213,19 @@ export default function BotConfigurePage() {
                   Show Preview
                 </>
               )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setTemplateName(bot.name + ' Template')
+                setTemplateDescription(bot.description || '')
+                setShowTemplateDialog(true)
+              }}
+            >
+              <BookTemplate className="h-4 w-4 mr-2" />
+              Save as Template
             </Button>
 
             <Button onClick={handleUpdate} disabled={saving} size="sm">
@@ -477,6 +541,57 @@ export default function BotConfigurePage() {
           </div>
         )}
       </div>
+
+      {/* Save as Template Dialog */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as Template</DialogTitle>
+            <DialogDescription>
+              Save this bot's configuration as a reusable template. You can use it to quickly create new bots with the same settings.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="template-name">Template Name*</Label>
+              <Input
+                id="template-name"
+                placeholder="e.g., Customer Support Template"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="template-description">Description</Label>
+              <Textarea
+                id="template-description"
+                placeholder="Describe what this template is for..."
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowTemplateDialog(false)}
+              disabled={savingTemplate}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveAsTemplate}
+              disabled={savingTemplate || !templateName.trim()}
+            >
+              {savingTemplate ? 'Saving...' : 'Save Template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
