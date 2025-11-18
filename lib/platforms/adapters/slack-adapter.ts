@@ -20,25 +20,52 @@ export class SlackAdapter extends PlatformAdapter {
 
   getCapabilities(): PlatformCapabilities {
     return {
-      supportsRichContent: true,
-      supportsButtons: true,
-      supportsCarousels: false,
-      supportsAttachments: true,
-      supportsVoice: false,
-      supportsVideo: false,
+      // Message Types
+      supportsText: true,
+      supportsImages: true,
+      supportsVideos: true,
+      supportsAudio: true,
+      supportsFiles: true,
       supportsLocation: false,
+      supportsContacts: false,
+      supportsStickers: false,
+
+      // Rich Content
+      supportsButtons: true,
+      supportsQuickReplies: false,
+      supportsCards: true,
+      supportsCarousel: false,
+      supportsList: false,
       supportsTemplates: false,
+
+      // Features
       supportsTypingIndicator: false,
       supportsReadReceipts: false,
+      supportsDeliveryReceipts: false,
+      supportsPresence: true,
+      supportsThreads: true,
+      supportsGroups: true,
+      supportsChannels: true,
+      supportsBroadcast: false,
+
+      // Interactive
+      supportsInteractiveMessages: true,
+      supportsInlineQueries: false,
+      supportsCommands: true,
+
+      // Advanced
+      supportsVoiceCalls: false,
+      supportsVideoCalls: false,
+      supportsScreenSharing: false,
+      supportsPayments: false,
+      supportsE2EEncryption: false,
+
+      // Limits
       maxMessageLength: 40000,
-      maxButtonsPerMessage: 5,
-      supportedAttachmentTypes: [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'application/pdf',
-        'text/plain',
-      ],
+      maxAttachmentSize: 1073741824, // 1 GB
+      maxButtons: 5,
+      maxQuickReplies: 0,
+      maxCarouselCards: 0,
     }
   }
 
@@ -226,6 +253,60 @@ export class SlackAdapter extends PlatformAdapter {
 
   private handleError(error: any): PlatformError {
     if (error instanceof PlatformError) return error
-    return new PlatformError('unknown', error.message || 'Unknown Slack error', { originalError: error })
+    return new PlatformError(error.message || 'Unknown Slack error', 'unknown', 'slack', false, { originalError: error })
+  }
+
+  getSetupGuide(): any[] {
+    return [
+      {
+        step: 1,
+        title: 'Create Slack App',
+        description: 'Create a new Slack app in the Slack App Directory'
+      },
+      {
+        step: 2,
+        title: 'Add Bot Token',
+        description: 'Add a bot user OAuth token to your app'
+      },
+      {
+        step: 3,
+        title: 'Configure Permissions',
+        description: 'Set required bot token scopes'
+      }
+    ]
+  }
+
+  protected getDefaultConfig(userConfig: any): any {
+    return {
+      ...userConfig,
+      webhookUrl: userConfig.webhookUrl || '',
+      botToken: userConfig.botToken || ''
+    }
+  }
+
+  async validateCredentials(credentials: any): Promise<{ valid: boolean; error?: string }> {
+    if (!credentials.botToken) {
+      return { valid: false, error: 'Bot token is required' }
+    }
+    return { valid: true }
+  }
+
+  handleWebhookChallenge(query: any, body: any): any {
+    return { challenge: body.challenge }
+  }
+
+  receiveMessage(rawMessage: any): any {
+    return {
+      id: rawMessage.ts,
+      platform: 'slack',
+      type: 'text',
+      content: rawMessage.text,
+      senderId: rawMessage.user,
+      senderType: 'user',
+      conversationId: rawMessage.channel,
+      timestamp: new Date(parseFloat(rawMessage.ts) * 1000),
+      direction: 'incoming',
+      raw: rawMessage
+    }
   }
 }
