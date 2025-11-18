@@ -17,10 +17,10 @@ interface Message {
 interface Bot {
   id: string
   name: string
-  system_prompt: string
+  instructions: string
   welcome_message: string
-  temperature: number
-  model: string
+  temperature?: number
+  model?: string
 }
 
 export default function BotPreview() {
@@ -182,7 +182,7 @@ export default function BotPreview() {
               This is a live preview using your current bot configuration. Messages sent here will not be saved to your conversation history.
             </p>
             <div className="mt-2 text-sm text-blue-700">
-              <strong>Current Settings:</strong> Model: {bot.model} | Temperature: {bot.temperature} | Session ID: {sessionId}
+              <strong>Current Settings:</strong> Model: {bot.model || 'gpt-3.5-turbo'} | Temperature: {bot.temperature ?? 0.7} | Session ID: {sessionId}
             </div>
           </div>
         </div>
