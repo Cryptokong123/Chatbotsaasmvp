@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    optimizeCss: true,
+    optimizeCss: false, // Disable to avoid critters dependency issue
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   images: {
