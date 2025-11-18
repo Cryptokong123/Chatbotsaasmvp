@@ -219,17 +219,26 @@ export default function DashboardPage() {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your AI chatbots and agents</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white bg-gradient-to-r from-gray-900 via-purple-900 to-gray-900 dark:from-white dark:via-purple-200 dark:to-white bg-clip-text">
+            Dashboard
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Manage your AI chatbots and agents</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => router.push('/dashboard/bots/new')} variant="outline" className="dark:border-white/20 dark:text-white dark:hover:bg-white/10">
+          <Button
+            onClick={() => router.push('/dashboard/bots/new')}
+            variant="outline"
+            className="dark:border-white/20 dark:text-white dark:hover:bg-white/10 hover:scale-105 transition-transform shadow-md hover:shadow-lg"
+          >
             <Bot className="h-4 w-4 mr-2" />
             Create Chatbot
           </Button>
-          <Button onClick={() => router.push('/dashboard/agents/new')} className="bg-white text-black hover:bg-gray-200 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+          <Button
+            onClick={() => router.push('/dashboard/agents/new')}
+            className="bg-gradient-to-r from-primary to-purple-600 text-white hover:from-primary/90 hover:to-purple-600/90 hover:scale-105 transition-transform shadow-lg hover:shadow-xl"
+          >
             <Sparkles className="h-4 w-4 mr-2" />
             Create Agent
           </Button>
@@ -239,31 +248,37 @@ export default function DashboardPage() {
       {/* Dashboard Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <Card className="dark:bg-white/5 dark:border-white/10">
+          <Card className="dark:bg-white/5 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer group animate-in fade-in slide-in-from-bottom-4 delay-100">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Bots</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalBots}</p>
                 </div>
-                <Bot className="h-8 w-8 text-blue-500" />
+                <div className="relative">
+                  <Bot className="h-8 w-8 text-blue-500 transition-transform group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="dark:bg-white/5 dark:border-white/10">
+          <Card className="dark:bg-white/5 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer group animate-in fade-in slide-in-from-bottom-4 delay-150">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Bots</p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.activeBots}</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-500" />
+                <div className="relative">
+                  <TrendingUp className="h-8 w-8 text-green-500 transition-transform group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="dark:bg-white/5 dark:border-white/10">
+          <Card className="dark:bg-white/5 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer group animate-in fade-in slide-in-from-bottom-4 delay-200">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -271,12 +286,15 @@ export default function DashboardPage() {
                   <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalConversations}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 30 days</p>
                 </div>
-                <Users className="h-8 w-8 text-purple-500" />
+                <div className="relative">
+                  <Users className="h-8 w-8 text-purple-500 transition-transform group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="dark:bg-white/5 dark:border-white/10">
+          <Card className="dark:bg-white/5 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer group animate-in fade-in slide-in-from-bottom-4 delay-300">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -284,12 +302,15 @@ export default function DashboardPage() {
                   <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalMessages}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 30 days</p>
                 </div>
-                <MessageSquare className="h-8 w-8 text-blue-500" />
+                <div className="relative">
+                  <MessageSquare className="h-8 w-8 text-blue-500 transition-transform group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="dark:bg-white/5 dark:border-white/10">
+          <Card className="dark:bg-white/5 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer group animate-in fade-in slide-in-from-bottom-4 delay-[400ms]">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -297,7 +318,10 @@ export default function DashboardPage() {
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.avgSatisfaction}%</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 30 days</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-500" />
+                <div className="relative">
+                  <TrendingUp className="h-8 w-8 text-green-500 transition-transform group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -312,8 +336,12 @@ export default function DashboardPage() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bots.map((bot) => (
-            <Card key={bot.id} className="hover:shadow-lg transition-shadow dark:bg-white/5 dark:border-white/10">
+          {bots.map((bot, index) => (
+            <Card
+              key={bot.id}
+              className="hover:shadow-xl hover:scale-105 transition-all duration-300 dark:bg-white/5 dark:border-white/10 group cursor-pointer animate-in fade-in slide-in-from-bottom-4"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div
