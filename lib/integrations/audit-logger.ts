@@ -593,7 +593,7 @@ export class AuditLogger extends EventEmitter {
     this.buffer = []
 
     try {
-      const { error } = await this.supabase.from('integration_events').insert(
+      const { error } = await (this.supabase.from('integration_events') as any).insert(
         logs.map(log => ({
           id: log.id,
           tenant_id: log.tenantId,

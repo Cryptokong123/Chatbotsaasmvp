@@ -118,8 +118,8 @@ export class IdempotencyManager extends EventEmitter {
     }
 
     // Check database
-    const { data: existing } = await this.supabase
-      .from('idempotency_keys')
+    const { data: existing } = await ((this.supabase
+      .from('idempotency_keys') as any) as any)
       .select('*')
       .eq('key', key)
       .eq('operation', operation)
@@ -173,8 +173,8 @@ export class IdempotencyManager extends EventEmitter {
     const now = new Date()
     const expiresAt = new Date(now.getTime() + this.config.ttl)
 
-    const { data, error } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error } = await ((this.supabase
+      .from('idempotency_keys') as any) as any)
       .insert({
         key,
         tenant_id: options.tenantId,
@@ -214,8 +214,8 @@ export class IdempotencyManager extends EventEmitter {
     const lockExpiresAt = new Date(Date.now() + this.config.lockTimeout)
 
     try {
-      const { data, error } = await this.supabase
-        .from('idempotency_keys')
+      const { data, error } = await (this.supabase
+        .from('idempotency_keys') as any)
         .update({
           status: 'processing',
           processing_started_at: new Date().toISOString(),
@@ -228,8 +228,8 @@ export class IdempotencyManager extends EventEmitter {
 
       if (error || !data) {
         // Lock already acquired or key not found
-        const { data: existing } = await this.supabase
-          .from('idempotency_keys')
+        const { data: existing } = await (this.supabase
+          .from('idempotency_keys') as any)
           .select('*')
           .eq('id', idempotencyKeyId)
           .single()
@@ -282,8 +282,8 @@ export class IdempotencyManager extends EventEmitter {
     }
 
     try {
-      const { error } = await this.supabase
-        .from('idempotency_keys')
+      const { error } = await (this.supabase
+        .from('idempotency_keys') as any)
         .update({
           status: 'pending',
           lock_expires_at: null,
@@ -319,8 +319,8 @@ export class IdempotencyManager extends EventEmitter {
       this.locks.delete(idempotencyKeyId)
     }
 
-    const { data, error } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error } = await (this.supabase
+      .from('idempotency_keys') as any)
       .update({
         status: 'completed',
         response_status: options.status || 200,
@@ -357,8 +357,8 @@ export class IdempotencyManager extends EventEmitter {
       this.locks.delete(idempotencyKeyId)
     }
 
-    const { data: key } = await this.supabase
-      .from('idempotency_keys')
+    const { data: key } = await (this.supabase
+      .from('idempotency_keys') as any)
       .select('*')
       .eq('id', idempotencyKeyId)
       .single()
@@ -370,8 +370,8 @@ export class IdempotencyManager extends EventEmitter {
     const shouldRetry =
       options.shouldRetry !== false && key.retry_count < key.max_retries
 
-    const { data, error: updateError } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error: updateError } = await (this.supabase
+      .from('idempotency_keys') as any)
       .update({
         status: shouldRetry ? 'pending' : 'failed',
         response_status: options.status || 500,
@@ -459,8 +459,8 @@ export class IdempotencyManager extends EventEmitter {
     const startTime = Date.now()
 
     while (Date.now() - startTime < maxWaitTime) {
-      const { data } = await this.supabase
-        .from('idempotency_keys')
+      const { data } = await (this.supabase
+        .from('idempotency_keys') as any)
         .select('*')
         .eq('id', idempotencyKeyId)
         .single()
@@ -501,8 +501,8 @@ export class IdempotencyManager extends EventEmitter {
    * Delete idempotency key
    */
   async delete(idempotencyKeyId: string): Promise<boolean> {
-    const { error } = await this.supabase
-      .from('idempotency_keys')
+    const { error } = await (this.supabase
+      .from('idempotency_keys') as any)
       .delete()
       .eq('id', idempotencyKeyId)
 
@@ -528,8 +528,8 @@ export class IdempotencyManager extends EventEmitter {
    * Cleanup expired keys
    */
   async cleanup(): Promise<number> {
-    const { data, error } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error } = await (this.supabase
+      .from('idempotency_keys') as any)
       .delete()
       .lt('expires_at', new Date().toISOString())
       .select('id')
@@ -560,8 +560,8 @@ export class IdempotencyManager extends EventEmitter {
    * Cleanup failed keys
    */
   async cleanupFailed(olderThan: Date = new Date(Date.now() - 86400000)): Promise<number> {
-    const { data, error } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error } = await (this.supabase
+      .from('idempotency_keys') as any)
       .delete()
       .eq('status', 'failed')
       .lt('updated_at', olderThan.toISOString())
@@ -579,8 +579,8 @@ export class IdempotencyManager extends EventEmitter {
    * Release stale locks
    */
   async releaseStale(): Promise<number> {
-    const { data, error } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error } = await (this.supabase
+      .from('idempotency_keys') as any)
       .update({
         status: 'pending',
         lock_expires_at: null,
@@ -611,8 +611,8 @@ export class IdempotencyManager extends EventEmitter {
    * Get idempotency key by key
    */
   async getByKey(key: string, operation: string): Promise<IdempotencyKey | null> {
-    const { data, error } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error } = await (this.supabase
+      .from('idempotency_keys') as any)
       .select('*')
       .eq('key', key)
       .eq('operation', operation)
@@ -629,8 +629,8 @@ export class IdempotencyManager extends EventEmitter {
    * Get idempotency key by ID
    */
   async getById(idempotencyKeyId: string): Promise<IdempotencyKey | null> {
-    const { data, error } = await this.supabase
-      .from('idempotency_keys')
+    const { data, error } = await (this.supabase
+      .from('idempotency_keys') as any)
       .select('*')
       .eq('id', idempotencyKeyId)
       .single()
@@ -657,7 +657,7 @@ export class IdempotencyManager extends EventEmitter {
       offset?: number
     } = {}
   ): Promise<IdempotencyKey[]> {
-    let query = this.supabase.from('idempotency_keys').select('*')
+    let query = (this.supabase.from('idempotency_keys') as any).select('*')
 
     if (filter.tenantId) {
       query = query.eq('tenant_id', filter.tenantId)

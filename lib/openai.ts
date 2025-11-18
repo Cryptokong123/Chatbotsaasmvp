@@ -93,7 +93,7 @@ export async function generateChatCompletion(
       stream: options?.stream ?? false,
     })
 
-    return response.choices[0]?.message?.content || ''
+    return (response as any).choices[0]?.message?.content || ''
   } catch (error) {
     console.error('Error generating chat completion:', error)
     throw new Error('Failed to generate response')

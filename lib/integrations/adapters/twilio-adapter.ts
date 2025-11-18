@@ -863,7 +863,7 @@ export class TwilioAdapter extends BaseIntegrationAdapter {
   // WEBHOOKS
   // ============================================================================
 
-  async verifyWebhook(signature: string, url: string, params: Record<string, string>): Promise<boolean> {
+  async verifyTwilioWebhook(signature: string, url: string, params: Record<string, string>): Promise<boolean> {
     if (!this.authToken) return false
 
     const crypto = require('crypto')
@@ -877,6 +877,11 @@ export class TwilioAdapter extends BaseIntegrationAdapter {
       .digest('base64')
 
     return signature === expectedSignature
+  }
+
+  // Base class override - use verifyTwilioWebhook instead
+  async verifyWebhook(payload: string | Buffer, signature: string, secret?: string): Promise<boolean> {
+    return false
   }
 
   async parseWebhook(payload: any): Promise<any> {

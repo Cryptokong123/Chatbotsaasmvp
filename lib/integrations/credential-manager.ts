@@ -81,7 +81,7 @@ export class CredentialManager {
    */
   private encrypt(data: string): { encrypted: Buffer; iv: Buffer; authTag: Buffer } {
     const iv = crypto.randomBytes(16)
-    const cipher = crypto.createCipheriv(this.algorithm, this.encryptionKey, iv)
+    const cipher = crypto.createCipheriv(this.algorithm, this.encryptionKey, iv) as crypto.CipherGCM
 
     let encrypted = cipher.update(data, 'utf8')
     encrypted = Buffer.concat([encrypted, cipher.final()])
@@ -95,7 +95,7 @@ export class CredentialManager {
    * Decrypt credentials data
    */
   private decrypt(encrypted: Buffer, iv: Buffer, authTag: Buffer): string {
-    const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv)
+    const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv) as crypto.DecipherGCM
     decipher.setAuthTag(authTag)
 
     let decrypted = decipher.update(encrypted)
@@ -143,8 +143,8 @@ export class CredentialManager {
       }
 
       // Store in database
-      const { data, error } = await this.supabase
-        .from('integration_credentials')
+      const { data, error } = await (this.supabase
+        .from('integration_credentials') as any)
         .insert({
           instance_id: instanceId,
           credential_type: credentialType,
@@ -175,8 +175,8 @@ export class CredentialManager {
    */
   async getCredentials(instanceId: string, credentialType?: string): Promise<DecryptedCredential | null> {
     try {
-      let query = this.supabase
-        .from('integration_credentials')
+      let query = (this.supabase
+        .from('integration_credentials') as any)
         .select('*')
         .eq('instance_id', instanceId)
         .eq('is_active', true)
@@ -240,8 +240,8 @@ export class CredentialManager {
   ): Promise<boolean> {
     try {
       // First, mark existing credentials as inactive
-      await this.supabase
-        .from('integration_credentials')
+      await (this.supabase
+        .from('integration_credentials') as any)
         .update({ is_active: false })
         .eq('instance_id', instanceId)
         .eq('credential_type', credentialType)
@@ -261,8 +261,8 @@ export class CredentialManager {
    */
   async deleteCredentials(instanceId: string, credentialType?: string): Promise<boolean> {
     try {
-      let query = this.supabase
-        .from('integration_credentials')
+      let query = (this.supabase
+        .from('integration_credentials') as any)
         .delete()
         .eq('instance_id', instanceId)
 
@@ -290,8 +290,8 @@ export class CredentialManager {
    */
   async needsTokenRefresh(instanceId: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase
-        .from('integration_credentials')
+      const { data, error } = await (this.supabase
+        .from('integration_credentials') as any)
         .select('expires_at')
         .eq('instance_id', instanceId)
         .eq('credential_type', 'oauth')
@@ -377,8 +377,8 @@ export class CredentialManager {
    */
   async markForRotation(instanceId: string, credentialType?: string): Promise<boolean> {
     try {
-      let query = this.supabase
-        .from('integration_credentials')
+      let query = (this.supabase
+        .from('integration_credentials') as any)
         .update({ rotation_required: true })
         .eq('instance_id', instanceId)
 
@@ -410,8 +410,8 @@ export class CredentialManager {
       await this.updateCredentials(instanceId, credentialType, newCredentials)
 
       // Update rotation timestamp
-      await this.supabase
-        .from('integration_credentials')
+      await (this.supabase
+        .from('integration_credentials') as any)
         .update({
           last_rotated_at: new Date().toISOString(),
           rotation_required: false,
@@ -436,8 +436,8 @@ export class CredentialManager {
     lastRotatedAt?: Date
   }>> {
     try {
-      const { data, error } = await this.supabase
-        .from('integration_credentials')
+      const { data, error } = await (this.supabase
+        .from('integration_credentials') as any)
         .select('instance_id, credential_type, last_rotated_at')
         .eq('rotation_required', true)
         .eq('is_active', true)
@@ -534,8 +534,8 @@ export class CredentialManager {
     rotationRequired: boolean
   } | null> {
     try {
-      const { data, error } = await this.supabase
-        .from('integration_credentials')
+      const { data, error } = await (this.supabase
+        .from('integration_credentials') as any)
         .select('credential_type, expires_at, last_rotated_at, rotation_required')
         .eq('instance_id', instanceId)
         .eq('is_active', true)

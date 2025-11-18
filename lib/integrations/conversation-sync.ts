@@ -244,8 +244,8 @@ export class ConversationSyncEngine extends EventEmitter {
         }
       }
 
-      const { data, error } = await this.supabase
-        .from('integration_conversations')
+      const { data, error } = await (this.supabase
+        .from('integration_conversations') as any)
         .insert({
           instance_id: instanceId,
           integration_type: integrationType,
@@ -307,8 +307,8 @@ export class ConversationSyncEngine extends EventEmitter {
     conversationData: Partial<Conversation>
   ): Promise<SyncResult> {
     try {
-      const { data, error } = await this.supabase
-        .from('integration_conversations')
+      const { data, error } = await (this.supabase
+        .from('integration_conversations') as any)
         .update({
           subject: conversationData.subject,
           status: conversationData.status,
@@ -331,7 +331,6 @@ export class ConversationSyncEngine extends EventEmitter {
           satisfaction_score: conversationData.satisfactionScore,
           is_active: conversationData.isActive,
           last_synced_at: new Date().toISOString(),
-          sync_version: this.supabase.rpc('increment', { row_id: conversationId }),
           raw_data: conversationData.rawData,
         })
         .eq('id', conversationId)
@@ -427,8 +426,8 @@ export class ConversationSyncEngine extends EventEmitter {
     messageData: Partial<Message>
   ): Promise<SyncResult> {
     try {
-      const { data, error } = await this.supabase
-        .from('integration_messages')
+      const { data, error } = await (this.supabase
+        .from('integration_messages') as any)
         .insert({
           conversation_id: conversationId,
           instance_id: instanceId,
@@ -473,10 +472,9 @@ export class ConversationSyncEngine extends EventEmitter {
       if (error) throw error
 
       // Update conversation message count
-      await this.supabase
-        .from('integration_conversations')
+      await (this.supabase
+        .from('integration_conversations') as any)
         .update({
-          message_count: this.supabase.raw('message_count + 1'),
           last_message_at: messageData.sentAt?.toISOString() || new Date().toISOString(),
         })
         .eq('id', conversationId)
@@ -505,8 +503,8 @@ export class ConversationSyncEngine extends EventEmitter {
     messageData: Partial<Message>
   ): Promise<SyncResult> {
     try {
-      const { data, error } = await this.supabase
-        .from('integration_messages')
+      const { data, error } = await (this.supabase
+        .from('integration_messages') as any)
         .update({
           status: messageData.status,
           body: messageData.body,
@@ -781,8 +779,8 @@ export class ConversationSyncEngine extends EventEmitter {
       offset?: number
     } = {}
   ): Promise<Conversation[]> {
-    const { data, error } = await this.supabase
-      .from('integration_conversations')
+    const { data, error } = await (this.supabase
+      .from('integration_conversations') as any)
       .select('*')
       .eq('instance_id', instanceId)
       .or(`subject.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`)
@@ -799,16 +797,16 @@ export class ConversationSyncEngine extends EventEmitter {
    */
   async markAsRead(conversationId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
-        .from('integration_conversations')
+      const { error } = await (this.supabase
+        .from('integration_conversations') as any)
         .update({ unread_count: 0 })
         .eq('id', conversationId)
 
       if (error) throw error
 
       // Mark all messages as read
-      await this.supabase
-        .from('integration_messages')
+      await (this.supabase
+        .from('integration_messages') as any)
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('conversation_id', conversationId)
         .eq('is_read', false)
@@ -827,8 +825,8 @@ export class ConversationSyncEngine extends EventEmitter {
    */
   async archiveConversation(conversationId: string): Promise<boolean> {
     try {
-      const { error } = await this.supabase
-        .from('integration_conversations')
+      const { error } = await (this.supabase
+        .from('integration_conversations') as any)
         .update({ status: 'archived', is_active: false })
         .eq('id', conversationId)
 
@@ -854,8 +852,8 @@ export class ConversationSyncEngine extends EventEmitter {
     instanceId: string,
     externalId: string
   ): Promise<any> {
-    const { data } = await this.supabase
-      .from('integration_conversations')
+    const { data } = await (this.supabase
+      .from('integration_conversations') as any)
       .select('*')
       .eq('instance_id', instanceId)
       .eq('external_id', externalId)
@@ -871,8 +869,8 @@ export class ConversationSyncEngine extends EventEmitter {
     conversationId: string,
     externalId: string
   ): Promise<any> {
-    const { data } = await this.supabase
-      .from('integration_messages')
+    const { data } = await (this.supabase
+      .from('integration_messages') as any)
       .select('*')
       .eq('conversation_id', conversationId)
       .eq('external_id', externalId)
@@ -893,18 +891,18 @@ export class ConversationSyncEngine extends EventEmitter {
     averageResponseTime: number
     averageResolutionTime: number
   }> {
-    const { data: conversations } = await this.supabase
-      .from('integration_conversations')
+    const { data: conversations } = await (this.supabase
+      .from('integration_conversations') as any)
       .select('*')
       .eq('instance_id', instanceId)
 
-    const { count: totalMessages } = await this.supabase
-      .from('integration_messages')
+    const { count: totalMessages } = await (this.supabase
+      .from('integration_messages') as any)
       .select('*', { count: 'exact', head: true })
       .eq('instance_id', instanceId)
 
-    const { data: unreadConvs } = await this.supabase
-      .from('integration_conversations')
+    const { data: unreadConvs } = await (this.supabase
+      .from('integration_conversations') as any)
       .select('unread_count')
       .eq('instance_id', instanceId)
       .gt('unread_count', 0)

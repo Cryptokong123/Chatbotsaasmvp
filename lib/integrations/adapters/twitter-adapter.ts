@@ -1201,7 +1201,8 @@ export class TwitterAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
       const formData = new FormData()
-      formData.append('media', media)
+      const mediaBlob = media instanceof Buffer ? new Blob([media as any]) : (typeof media === 'string' ? new Blob([media]) : media)
+      formData.append('media', mediaBlob as Blob)
       formData.append('media_type', mediaType)
 
       const result = await this.makeRequest(async () => {
@@ -1260,7 +1261,7 @@ export class TwitterAdapter extends BaseIntegrationAdapter {
       const formData = new FormData()
       formData.append('command', 'APPEND')
       formData.append('media_id', mediaId)
-      formData.append('media', media)
+      formData.append('media', new Blob([media as any]))
       formData.append('segment_index', segmentIndex.toString())
 
       const result = await this.makeRequest(async () => {

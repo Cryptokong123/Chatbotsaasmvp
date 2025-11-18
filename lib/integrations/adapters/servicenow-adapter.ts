@@ -1104,6 +1104,7 @@ export class ServiceNowAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
       const result = await this.makeRequest(async () => {
+        const bodyContent = fileContent instanceof Buffer ? new Blob([fileContent as any]) : fileContent
         const response = await fetch(`${this.baseUrl}/attachment/file?table_name=${tableName}&table_sys_id=${tableSysId}&file_name=${fileName}`, {
           method: 'POST',
           headers: {
@@ -1111,7 +1112,7 @@ export class ServiceNowAdapter extends BaseIntegrationAdapter {
             'Content-Type': contentType,
             'Accept': 'application/json',
           },
-          body: fileContent,
+          body: bodyContent as BodyInit,
         })
         if (!response.ok) throw new Error(`ServiceNow API error: ${response.status}`)
         const data = await response.json()

@@ -45,8 +45,9 @@ export function lazyLoad<P extends object>(
     ssr?: boolean
   }
 ) {
+  const LoadingComponent = options?.loading || DefaultLoader
   return dynamic(importFunc, {
-    loading: options?.loading || DefaultLoader,
+    loading: () => <LoadingComponent />,
     ssr: options?.ssr ?? true,
   })
 }
@@ -115,24 +116,14 @@ export function useLazyLoadOnInteraction<P extends object>(
 
 /**
  * Lazy load routes/pages
+ *
+ * Example usage (commented out - add your own component imports):
+ *
+ * export const LazyRoutes = {
+ *   Analytics: lazyLoadWithSkeleton(() => import('@/components/analytics-dashboard')),
+ *   BotBuilder: lazyLoadWithSkeleton(() => import('@/components/bot-builder')),
+ * }
  */
-export const LazyRoutes = {
-  // Dashboard routes
-  Analytics: lazyLoadWithSkeleton(() => import('@/components/analytics-dashboard')),
-  BotBuilder: lazyLoadWithSkeleton(() => import('@/components/bot-builder')),
-  ConversationView: lazyLoadWithSkeleton(() => import('@/components/conversation-view')),
-
-  // Admin routes
-  AdminPanel: lazyLoadClientOnly(() => import('@/components/admin-panel')),
-
-  // Heavy components
-  RichTextEditor: lazyLoadClientOnly(() => import('@/components/rich-text-editor')),
-  MarkdownEditor: lazyLoadClientOnly(() => import('@/components/markdown-editor')),
-  CodeEditor: lazyLoadClientOnly(() => import('@/components/code-editor')),
-
-  // Charts (can be large)
-  AnalyticsCharts: lazyLoadClientOnly(() => import('@/components/analytics-charts')),
-}
 
 // Re-export for convenience
 import { useState, useCallback } from 'react'

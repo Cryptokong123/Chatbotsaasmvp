@@ -1421,7 +1421,8 @@ export class ZendeskSunshineAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
       const formData = new FormData()
-      formData.append('file', new Blob([file.data], { type: file.content_type }), file.filename)
+      const fileBlob = file.data instanceof Buffer ? new Blob([file.data as any], { type: file.content_type }) : file.data
+      formData.append('file', fileBlob as Blob, file.filename)
 
       const result = await this.makeRequest(async () => {
         const response = await fetch(`${this.baseUrl}/attachments`, {

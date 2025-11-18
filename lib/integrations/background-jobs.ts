@@ -141,7 +141,7 @@ export class BackgroundJobsScheduler extends EventEmitter {
         cronJob.start()
         this.cronJobs.set(job.id, cronJob)
 
-        job.nextRun = cronJob.nextDate().toDate()
+        job.nextRun = cronJob.nextDate().toJSDate()
       } catch (error: any) {
         console.error(`Failed to schedule cron job ${job.name}:`, error)
       }
@@ -189,7 +189,7 @@ export class BackgroundJobsScheduler extends EventEmitter {
 
       // Update next run time
       if (job.schedule && this.cronJobs.has(jobId)) {
-        job.nextRun = this.cronJobs.get(jobId)!.nextDate().toDate()
+        job.nextRun = this.cronJobs.get(jobId)!.nextDate().toJSDate()
       } else if (job.interval) {
         job.nextRun = new Date(Date.now() + job.interval)
       }

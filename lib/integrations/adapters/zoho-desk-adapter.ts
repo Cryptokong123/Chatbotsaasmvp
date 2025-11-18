@@ -1421,7 +1421,7 @@ export class ZohoDeskAdapter extends BaseIntegrationAdapter {
     try {
       await this.ensureConnected()
       const formData = new FormData()
-      const blob = typeof file.content === 'string' ? new Blob([file.content]) : new Blob([file.content])
+      const blob = typeof file.content === 'string' ? new Blob([file.content]) : new Blob([file.content as any])
       formData.append('file', blob, file.filename)
 
       const result = await this.makeRequest(async () => {

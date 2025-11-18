@@ -860,7 +860,8 @@ export class ZendeskAdapter extends BaseIntegrationAdapter {
 
       const result = await this.makeRequest(async () => {
         const formData = new FormData()
-        formData.append('file', params.file, params.filename)
+        const fileBlob = params.file instanceof Buffer ? new Blob([params.file as any]) : params.file
+        formData.append('file', fileBlob as Blob, params.filename)
 
         const response = await fetch(`${this.baseUrl}/uploads.json?filename=${encodeURIComponent(params.filename)}`, {
           method: 'POST',
@@ -868,7 +869,7 @@ export class ZendeskAdapter extends BaseIntegrationAdapter {
             ...this.getAuthHeaders(),
             'Content-Type': params.contentType,
           },
-          body: params.file,
+          body: fileBlob as BodyInit,
         })
 
         if (!response.ok) {

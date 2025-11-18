@@ -379,12 +379,14 @@ export class AnalyticsManager extends EventEmitter {
 
       const latency = Date.now() - start
 
-      const status: HealthCheck['status'] =
-        instance?.status === 'connected' && instance.consecutive_failures === 0
-          ? 'healthy'
-          : instance?.status === 'connected' && instance.consecutive_failures < 3
-            ? 'degraded'
-            : 'unhealthy'
+      let status: HealthCheck['status'] = 'unhealthy'
+      if (instance && (instance as any).status === 'connected') {
+        if ((instance as any).consecutive_failures === 0) {
+          status = 'healthy'
+        } else if ((instance as any).consecutive_failures < 3) {
+          status = 'degraded'
+        }
+      }
 
       const healthCheck: HealthCheck = {
         instanceId,
@@ -392,10 +394,10 @@ export class AnalyticsManager extends EventEmitter {
         status,
         latency,
         lastCheck: new Date(),
-        consecutiveFailures: instance?.consecutive_failures || 0,
+        consecutiveFailures: (instance as any)?.consecutive_failures || 0,
         details: {
-          instanceStatus: instance?.status,
-          lastError: instance?.last_error,
+          instanceStatus: (instance as any)?.status,
+          lastError: (instance as any)?.last_error,
         },
         errors: errors.length > 0 ? errors : undefined,
       }
@@ -536,16 +538,16 @@ export class AnalyticsManager extends EventEmitter {
     let receivedMessages = 0
     let failedMessages = 0
 
-    for (const message of messages || []) {
-      const instance = instances?.find(i => i.id === message.instance_id)
+    for (const message of (messages as any) || []) {
+      const instance = (instances as any)?.find((i: any) => i.id === (message as any).instance_id)
       if (instance) {
-        messagesByIntegration[instance.integration_type] =
-          (messagesByIntegration[instance.integration_type] || 0) + 1
+        messagesByIntegration[(instance as any).integration_type] =
+          (messagesByIntegration[(instance as any).integration_type] || 0) + 1
       }
 
-      if (message.direction === 'outbound') sentMessages++
-      if (message.direction === 'inbound') receivedMessages++
-      if (message.status === 'failed') failedMessages++
+      if ((message as any).direction === 'outbound') sentMessages++
+      if ((message as any).direction === 'inbound') receivedMessages++
+      if ((message as any).status === 'failed') failedMessages++
     }
 
     // Get sync stats
@@ -580,9 +582,9 @@ export class AnalyticsManager extends EventEmitter {
       period,
       integrations: {
         total: instances?.length || 0,
-        active: instances?.filter(i => i.enabled).length || 0,
-        connected: instances?.filter(i => i.status === 'connected').length || 0,
-        disconnected: instances?.filter(i => i.status === 'disconnected').length || 0,
+        active: (instances as any)?.filter((i: any) => i.enabled).length || 0,
+        connected: (instances as any)?.filter((i: any) => i.status === 'connected').length || 0,
+        disconnected: (instances as any)?.filter((i: any) => i.status === 'disconnected').length || 0,
         byType: integrationsByType,
       },
       messages: {
@@ -637,7 +639,7 @@ export class AnalyticsManager extends EventEmitter {
       createdAt: new Date(),
     }
 
-    const { error } = await this.supabase.from('integration_alerts').insert({
+    const { error } = await (this.supabase.from('integration_alerts') as any).insert({
       id: alert.id,
       tenant_id: alert.tenantId,
       instance_id: alert.instanceId,
@@ -661,8 +663,8 @@ export class AnalyticsManager extends EventEmitter {
    * Resolve alert
    */
   async resolveAlert(alertId: string): Promise<void> {
-    await this.supabase
-      .from('integration_alerts')
+    await (this.supabase
+      .from('integration_alerts') as any)
       .update({
         status: 'resolved',
         resolved_at: new Date().toISOString(),
@@ -688,7 +690,7 @@ export class AnalyticsManager extends EventEmitter {
     this.metricsBuffer = []
 
     try {
-      const { error } = await this.supabase.from('integration_metrics').insert(
+      const { error } = await (this.supabase.from('integration_metrics') as any).insert(
         metrics.map(m => ({
           id: m.id,
           tenant_id: m.tenantId,

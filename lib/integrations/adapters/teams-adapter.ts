@@ -1014,6 +1014,7 @@ export class TeamsAdapter extends BaseIntegrationAdapter {
       const folderId = driveResult.data.id
 
       const result = await this.makeRequest(async () => {
+        const bodyContent = fileContent instanceof Buffer ? new Blob([fileContent as any]) : fileContent
         const response = await fetch(
           `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${folderId}:/${fileName}:/content`,
           {
@@ -1022,7 +1023,7 @@ export class TeamsAdapter extends BaseIntegrationAdapter {
               Authorization: `Bearer ${this.graphAccessToken}`,
               'Content-Type': 'application/octet-stream',
             },
-            body: fileContent,
+            body: bodyContent as BodyInit,
           }
         )
 

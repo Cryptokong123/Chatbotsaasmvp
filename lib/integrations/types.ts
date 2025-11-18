@@ -59,11 +59,12 @@ export type IntegrationType =
   | 'salesforce' | 'hubspot' | 'zoho_crm' | 'pipedrive' | 'copper'
   | 'close' | 'insightly' | 'nimble' | 'capsule' | 'agile_crm'
   | 'dynamics_365' | 'sap_crm' | 'oracle_cx' | 'sugar_crm' | 'attio'
-  | 'folk' | 'affinity'
+  | 'folk' | 'affinity' | 'freshsales' | 'zendesk_sell'
 
   // Support/Helpdesk
   | 'zendesk' | 'freshdesk' | 'freshchat' | 'intercom' | 'drift'
   | 'servicenow' | 'help_scout' | 'front' | 'missive' | 'hiver'
+  | 'freshservice' | 'zendesk_sunshine' | 'zoho_desk'
   | 'gorgias' | 'reamaze' | 'kustomer' | 'gladly' | 'richpanel'
   | 'liveagent' | 'kayako' | 'crisp' | 'tawk' | 'livechat'
   | 'olark' | 'pure_chat' | 'tidio' | 'userlike' | 'smartsupp'

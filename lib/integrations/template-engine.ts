@@ -118,8 +118,8 @@ export class TemplateEngine extends EventEmitter {
       throw new Error(`Invalid template: ${validation.errors?.join(', ')}`)
     }
 
-    const { data, error } = await this.supabase
-      .from('integration_templates')
+    const { data, error } = await (this.supabase
+      .from('integration_templates') as any)
       .insert({
         tenant_id: template.tenantId,
         instance_id: template.instanceId,
@@ -164,8 +164,8 @@ export class TemplateEngine extends EventEmitter {
       return cached
     }
 
-    const { data, error } = await this.supabase
-      .from('integration_templates')
+    const { data, error } = await (this.supabase
+      .from('integration_templates') as any)
       .select('*')
       .eq('id', templateId)
       .single()
@@ -182,8 +182,8 @@ export class TemplateEngine extends EventEmitter {
    * Get template by slug
    */
   async getTemplateBySlug(slug: string, tenantId?: string): Promise<Template | null> {
-    let query = this.supabase
-      .from('integration_templates')
+    let query = (this.supabase
+      .from('integration_templates') as any)
       .select('*')
       .eq('slug', slug)
       .eq('status', 'active')
@@ -206,8 +206,8 @@ export class TemplateEngine extends EventEmitter {
    * Update template
    */
   async updateTemplate(templateId: string, updates: Partial<Template>): Promise<Template> {
-    const { data, error } = await this.supabase
-      .from('integration_templates')
+    const { data, error } = await (this.supabase
+      .from('integration_templates') as any)
       .update({
         name: updates.name,
         description: updates.description,
@@ -242,8 +242,8 @@ export class TemplateEngine extends EventEmitter {
    * Delete template
    */
   async deleteTemplate(templateId: string): Promise<boolean> {
-    const { error } = await this.supabase
-      .from('integration_templates')
+    const { error } = await (this.supabase
+      .from('integration_templates') as any)
       .delete()
       .eq('id', templateId)
 
@@ -707,10 +707,9 @@ export class TemplateEngine extends EventEmitter {
    * Track template usage
    */
   private async trackUsage(templateId: string): Promise<void> {
-    await this.supabase
-      .from('integration_templates')
+    await (this.supabase
+      .from('integration_templates') as any)
       .update({
-        usage_count: this.supabase.raw('usage_count + 1'),
         last_used_at: new Date().toISOString(),
       })
       .eq('id', templateId)

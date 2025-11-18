@@ -132,8 +132,8 @@ export class ContactSyncEngine extends EventEmitter {
       }
 
       // Insert contact
-      const { data, error } = await this.supabase
-        .from('integration_contacts')
+      const { data, error } = await (this.supabase
+        .from('integration_contacts') as any)
         .insert({
           instance_id: instanceId,
           integration_type: integrationType,
@@ -194,8 +194,8 @@ export class ContactSyncEngine extends EventEmitter {
     contactData: Partial<Contact>
   ): Promise<SyncResult> {
     try {
-      const { data, error } = await this.supabase
-        .from('integration_contacts')
+      const { data, error } = await (this.supabase
+        .from('integration_contacts') as any)
         .update({
           email: contactData.email,
           phone: contactData.phone,
@@ -215,7 +215,6 @@ export class ContactSyncEngine extends EventEmitter {
           segments: contactData.segments,
           last_synced_at: new Date().toISOString(),
           last_modified_at: contactData.lastModifiedAt?.toISOString(),
-          sync_version: this.supabase.rpc('increment', { row_id: contactId }),
           raw_data: contactData.rawData,
         })
         .eq('id', contactId)
@@ -252,8 +251,8 @@ export class ContactSyncEngine extends EventEmitter {
 
     // Find by email
     if (contactData.email) {
-      const { data } = await this.supabase
-        .from('integration_contacts')
+      const { data } = await (this.supabase
+        .from('integration_contacts') as any)
         .select('*')
         .eq('email', contactData.email)
         .eq('is_active', true)
@@ -278,8 +277,8 @@ export class ContactSyncEngine extends EventEmitter {
     if (contactData.phone) {
       const normalizedPhone = this.normalizePhone(contactData.phone)
 
-      const { data } = await this.supabase
-        .from('integration_contacts')
+      const { data } = await (this.supabase
+        .from('integration_contacts') as any)
         .select('*')
         .ilike('phone', `%${normalizedPhone}%`)
         .eq('is_active', true)
@@ -304,8 +303,8 @@ export class ContactSyncEngine extends EventEmitter {
 
     // Find by name + company
     if (contactData.fullName && contactData.company) {
-      const { data } = await this.supabase
-        .from('integration_contacts')
+      const { data } = await (this.supabase
+        .from('integration_contacts') as any)
         .select('*')
         .ilike('full_name', `%${contactData.fullName}%`)
         .ilike('company', `%${contactData.company}%`)
@@ -414,8 +413,8 @@ export class ContactSyncEngine extends EventEmitter {
       const duplicateId = masterId === contact1Id ? contact2Id : contact1Id
 
       // Get both contacts
-      const { data: contacts } = await this.supabase
-        .from('integration_contacts')
+      const { data: contacts } = await (this.supabase
+        .from('integration_contacts') as any)
         .select('*')
         .in('id', [masterId, duplicateId])
 
@@ -447,14 +446,14 @@ export class ContactSyncEngine extends EventEmitter {
       }
 
       // Update master contact
-      await this.supabase
-        .from('integration_contacts')
+      await (this.supabase
+        .from('integration_contacts') as any)
         .update(mergedData)
         .eq('id', masterId)
 
       // Mark duplicate as merged
-      await this.supabase
-        .from('integration_contacts')
+      await (this.supabase
+        .from('integration_contacts') as any)
         .update({
           is_duplicate: true,
           master_contact_id: masterId,
@@ -479,8 +478,8 @@ export class ContactSyncEngine extends EventEmitter {
    * Find existing contact
    */
   private async findExistingContact(instanceId: string, externalId: string): Promise<any> {
-    const { data } = await this.supabase
-      .from('integration_contacts')
+    const { data } = await (this.supabase
+      .from('integration_contacts') as any)
       .select('*')
       .eq('instance_id', instanceId)
       .eq('external_id', externalId)
