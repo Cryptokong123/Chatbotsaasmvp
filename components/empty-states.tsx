@@ -42,7 +42,7 @@ export function EmptyState({ icon, title, description, action, secondaryAction }
   )
 }
 
-export function NoBotsEmpty({ onCreateBot }: { onCreateBot: () => void }) {
+export function NoBotsEmpty({ onCreateBot, onCreateAgent }: { onCreateBot: () => void; onCreateAgent?: () => void }) {
   return (
     <EmptyState
       icon={
@@ -51,12 +51,16 @@ export function NoBotsEmpty({ onCreateBot }: { onCreateBot: () => void }) {
           <Bot className="h-16 w-16 text-primary relative" />
         </div>
       }
-      title="No bots yet"
-      description="Create your first AI chatbot to start engaging with your customers. It only takes a minute to set up!"
+      title="No bots or agents yet"
+      description="Create your first AI chatbot or autonomous agent to start engaging with your customers. It only takes a minute to set up!"
       action={{
-        label: 'Create Your First Bot',
+        label: 'Create Chatbot',
         onClick: onCreateBot,
       }}
+      secondaryAction={onCreateAgent ? {
+        label: 'Create Agent',
+        onClick: onCreateAgent,
+      } : undefined}
     />
   )
 }

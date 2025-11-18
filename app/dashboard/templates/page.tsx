@@ -388,10 +388,10 @@ export default function TemplatesPage() {
                   </div>
                 )}
 
-              {/* System Prompt */}
+              {/* Instructions */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">System Prompt</h3>
-                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 font-mono">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Instructions</h3>
+                <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
                   {previewTemplate.system_prompt}
                 </div>
               </div>

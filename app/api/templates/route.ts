@@ -85,10 +85,9 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         name: customName || template.name,
         description: template.description,
-        system_prompt: template.system_prompt,
+        instructions: template.system_prompt, // Map template's system_prompt to bot's instructions
         welcome_message: template.welcome_message,
         primary_color: template.primary_color,
-        display_name: template.display_name,
         placeholder_text: template.placeholder_text,
         is_active: true,
       })

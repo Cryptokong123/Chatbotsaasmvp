@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Bot, Code, Trash2, Settings, Copy, MessageSquare, TrendingUp, Users, Eye, Power } from 'lucide-react'
+import { Plus, Bot, Code, Trash2, Settings, Copy, MessageSquare, TrendingUp, Users, Eye, Power, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -221,13 +221,19 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Bots</h1>
-          <p className="text-gray-600 mt-1">Manage your AI chatbots</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your AI chatbots and agents</p>
         </div>
-        <Button onClick={() => router.push('/dashboard/bots/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Bot
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={() => router.push('/dashboard/bots/new')} variant="outline" className="dark:border-white/20 dark:text-white dark:hover:bg-white/10">
+            <Bot className="h-4 w-4 mr-2" />
+            Create Chatbot
+          </Button>
+          <Button onClick={() => router.push('/dashboard/agents/new')} className="bg-white text-black hover:bg-gray-200 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Create Agent
+          </Button>
+        </div>
       </div>
 
       {/* Dashboard Stats */}
@@ -300,7 +306,10 @@ export default function DashboardPage() {
 
       {/* Bots Grid */}
       {bots.length === 0 ? (
-        <NoBotsEmpty onCreateBot={() => router.push('/dashboard/bots/new')} />
+        <NoBotsEmpty
+          onCreateBot={() => router.push('/dashboard/bots/new')}
+          onCreateAgent={() => router.push('/dashboard/agents/new')}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bots.map((bot) => (
