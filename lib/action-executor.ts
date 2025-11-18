@@ -7,9 +7,17 @@
 import OpenAI from 'openai'
 import { createServerSupabaseClient } from './supabase'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Lazy initialize OpenAI client to avoid build errors when API key is not set
+let openaiClient: OpenAI | null = null
+
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
+    })
+  }
+  return openaiClient
+}
 
 export interface BotAction {
   id: string
@@ -256,7 +264,7 @@ export async function processWithActions(
 
   try {
     // Call OpenAI with function calling
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages,
       tools,
@@ -304,7 +312,7 @@ export async function processWithActions(
 
       if (result.success) {
         // Ask AI to format the success response
-        const successCompletion = await openai.chat.completions.create({
+        const successCompletion = await getOpenAI().chat.completions.create({
           model: 'gpt-4-turbo-preview',
           messages: [
             ...messages,

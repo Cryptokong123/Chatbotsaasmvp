@@ -6,7 +6,7 @@ import OpenAI from 'openai'
  */
 const apiKeys = process.env.OPENAI_API_KEYS
   ? process.env.OPENAI_API_KEYS.split(',').map((k) => k.trim())
-  : [process.env.OPENAI_API_KEY || '']
+  : [process.env.OPENAI_API_KEY || 'dummy-key']
 
 let currentKeyIndex = 0
 
@@ -28,8 +28,14 @@ function createOpenAIClient(): OpenAI {
   })
 }
 
-// Initialize OpenAI client with rotation
-const openai = createOpenAIClient()
+// Lazy initialize OpenAI client with rotation
+let openai: OpenAI | null = null
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    openai = createOpenAIClient()
+  }
+  return openai
+}
 
 /**
  * Generate embeddings for text using OpenAI's text-embedding-3-small model
@@ -128,4 +134,4 @@ export async function streamChatCompletion(
   }
 }
 
-export { openai }
+export { getOpenAIClient as openai }

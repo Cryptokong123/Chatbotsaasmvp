@@ -4,9 +4,17 @@ import { TelegramAdapter } from '@/lib/platforms/adapters/telegram-adapter'
 import { MessageRouter } from '@/lib/platforms/message-router'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Lazy initialize OpenAI client to avoid build errors when API key is not set
+let openaiClient: OpenAI | null = null
+
+function getOpenAI(): OpenAI {
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
+    })
+  }
+  return openaiClient
+}
 
 /**
  * POST /api/webhooks/agents/[agentId]/[platform]
@@ -137,7 +145,7 @@ status: 400 })
 
     // Generate AI response
     const startTime = Date.now()
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4',
       messages: [
         {

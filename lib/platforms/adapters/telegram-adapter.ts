@@ -234,11 +234,12 @@ export class TelegramAdapter extends PlatformAdapter {
   /**
    * Upload media file
    */
-  async uploadMedia(file: Buffer, filename: string, mimeType: string): Promise<string> {
+  async uploadMedia(file: Buffer | string, mimeType: string, filename?: string): Promise<{ url: string; mediaId?: string }> {
     this.ensureConnected()
 
+    const buffer = typeof file === 'string' ? Buffer.from(file, 'base64') : file
     const formData = new FormData()
-    formData.append('photo', new Blob([file], { type: mimeType }), filename)
+    formData.append('photo', new Blob([new Uint8Array(buffer)], { type: mimeType }), filename || 'file')
 
     try {
       const response = await fetch(`${this.baseUrl}${this.botToken}/sendPhoto`, {
@@ -254,7 +255,11 @@ export class TelegramAdapter extends PlatformAdapter {
         })
       }
 
-      return data.result.photo[0].file_id
+      const fileId = data.result.photo[0].file_id
+      return {
+        url: fileId,
+        mediaId: fileId
+      }
     } catch (error) {
       throw this.handleError(error)
     }
