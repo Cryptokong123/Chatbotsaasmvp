@@ -58,23 +58,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-black to-gray-950 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center space-x-2 mb-8">
-          <Bot className="h-10 w-10 text-primary" />
-          <span className="text-2xl font-bold">ChatForge AI</span>
+          <Bot className="h-10 w-10 text-white" />
+          <span className="text-2xl font-bold text-white">ChatForge AI</span>
         </Link>
 
-        <Card>
+        <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Create an account</CardTitle>
-            <CardDescription>Start building AI chatbots in minutes</CardDescription>
+            <CardTitle className="text-white">Create an account</CardTitle>
+            <CardDescription className="text-gray-400">Start building AI chatbots in minutes</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName" className="text-gray-300">Full Name</Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -83,11 +83,12 @@ export default function RegisterPage() {
                   onChange={(e) => setFullName(e.target.value)}
                   required
                   disabled={loading}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-gray-300">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -96,11 +97,12 @@ export default function RegisterPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={loading}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-gray-300">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -110,31 +112,32 @@ export default function RegisterPage() {
                   required
                   disabled={loading}
                   minLength={6}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
                 />
                 <p className="text-xs text-gray-500">Must be at least 6 characters</p>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full bg-white text-black hover:bg-gray-200" disabled={loading}>
                 {loading ? 'Creating account...' : 'Create Account'}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-gray-600">Already have an account? </span>
-              <Link href="/login" className="text-primary hover:underline font-medium">
+              <span className="text-gray-400">Already have an account? </span>
+              <Link href="/login" className="text-white hover:underline font-medium">
                 Sign in
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-gray-600 mt-8">
+        <p className="text-center text-sm text-gray-400 mt-8">
           By creating an account, you agree to our{' '}
-          <Link href="/terms" className="text-primary hover:underline">
+          <Link href="/terms" className="text-white hover:underline">
             Terms of Service
           </Link>{' '}
           and{' '}
-          <Link href="/privacy" className="text-primary hover:underline">
+          <Link href="/privacy" className="text-white hover:underline">
             Privacy Policy
           </Link>
         </p>

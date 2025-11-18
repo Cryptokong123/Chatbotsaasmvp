@@ -8,9 +8,13 @@ import { Bot, Check } from 'lucide-react'
 export default function LandingPage() {
   const [typedText, setTypedText] = useState('')
   const [showDeployInstantly, setShowDeployInstantly] = useState(false)
-  const fullText = 'Build AI chatbots.'
+  const [showCursor, setShowCursor] = useState(true)
+  const fullText = 'Build AI chatbots and agents.'
 
   useEffect(() => {
+    // Add smooth scrolling to the document
+    document.documentElement.style.scrollBehavior = 'smooth'
+
     let currentIndex = 0
     const typingInterval = setInterval(() => {
       if (currentIndex <= fullText.length) {
@@ -20,40 +24,76 @@ export default function LandingPage() {
         clearInterval(typingInterval)
         setTimeout(() => setShowDeployInstantly(true), 300)
       }
-    }, 80)
+    }, 60)
 
-    return () => clearInterval(typingInterval)
+    return () => {
+      clearInterval(typingInterval)
+      document.documentElement.style.scrollBehavior = 'auto'
+    }
   }, [])
 
-  // Platform logos for infinite scroll
-  const platforms = [
-    { name: 'WhatsApp', icon: '💬' },
-    { name: 'Telegram', icon: '✈️' },
-    { name: 'Slack', icon: '💼' },
-    { name: 'Discord', icon: '🎮' },
-    { name: 'Messenger', icon: '📱' },
-    { name: 'Instagram', icon: '📸' },
-    { name: 'Teams', icon: '👥' },
-    { name: 'Twitter', icon: '🐦' },
+  // All 20+ platforms for scrollers
+  const allPlatforms = [
+    'WhatsApp', 'Telegram', 'Slack', 'Discord', 'Teams',
+    'Messenger', 'Instagram', 'Twitter', 'LinkedIn', 'SMS',
+    'Voice', 'Email', 'WeChat', 'Line', 'Viber',
+    'Kakao', 'Alexa', 'Google Assistant', 'Google Business', 'Apple Business'
   ]
+
+  const firstSetPlatforms = allPlatforms.slice(0, 10)
+  const secondSetPlatforms = allPlatforms.slice(10)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white overflow-hidden">
-      {/* Stars Background */}
-      <div className="fixed inset-0 pointer-events-none">
-        {[...Array(50)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.7 + 0.3,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${Math.random() * 2 + 1}s`,
-            }}
-          />
-        ))}
+      {/* Dot Matrix Clouds - Keep these */}
+      <div className="fixed inset-0 pointer-events-none opacity-40">
+        {/* Cloud 1 */}
+        <div className="absolute top-20 left-10">
+          <svg width="200" height="80" viewBox="0 0 200 80">
+            <defs>
+              <pattern id="dots1" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="0.8" fill="#666" />
+              </pattern>
+            </defs>
+            <ellipse cx="100" cy="40" rx="90" ry="35" fill="url(#dots1)" />
+          </svg>
+        </div>
+
+        {/* Cloud 2 */}
+        <div className="absolute top-32 right-20">
+          <svg width="180" height="70" viewBox="0 0 180 70">
+            <defs>
+              <pattern id="dots2" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="0.8" fill="#666" />
+              </pattern>
+            </defs>
+            <ellipse cx="90" cy="35" rx="80" ry="30" fill="url(#dots2)" />
+          </svg>
+        </div>
+
+        {/* Cloud 3 */}
+        <div className="absolute top-48 left-1/3">
+          <svg width="220" height="90" viewBox="0 0 220 90">
+            <defs>
+              <pattern id="dots3" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="0.8" fill="#666" />
+              </pattern>
+            </defs>
+            <ellipse cx="110" cy="45" rx="100" ry="40" fill="url(#dots3)" />
+          </svg>
+        </div>
+
+        {/* Cloud 4 */}
+        <div className="absolute top-60 right-1/4">
+          <svg width="160" height="65" viewBox="0 0 160 65">
+            <defs>
+              <pattern id="dots4" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+                <circle cx="2" cy="2" r="0.8" fill="#666" />
+              </pattern>
+            </defs>
+            <ellipse cx="80" cy="32" rx="70" ry="28" fill="url(#dots4)" />
+          </svg>
+        </div>
       </div>
 
       {/* Faded City Skyline */}
@@ -68,7 +108,7 @@ export default function LandingPage() {
             </pattern>
           </defs>
 
-          {/* Buildings with dot matrix pattern */}
+          {/* Buildings */}
           <rect x="0" y="150" width="80" height="106" fill="url(#cityDots)" />
           <rect x="10" y="160" width="15" height="30" fill="url(#windowDots)" />
           <rect x="30" y="160" width="15" height="30" fill="url(#windowDots)" />
@@ -152,10 +192,10 @@ export default function LandingPage() {
               <span className="text-lg font-bold">ChatForge AI</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="#features" className="text-sm text-gray-300 hover:text-white transition-colors">
+              <a href="#features" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Features
-              </Link>
-              <Link href="#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
+              </a>
+              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
               <Link href="/docs" className="text-sm text-gray-300 hover:text-white transition-colors">
@@ -181,9 +221,9 @@ export default function LandingPage() {
       {/* Hero Section with Typing Animation */}
       <section className="relative min-h-[85vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-tight">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-8 leading-tight">
             {typedText}
-            <span className="inline-block w-1 h-20 bg-white ml-1 animate-pulse"></span>
+            {showCursor && <span className="inline-block w-1 h-16 bg-white ml-1 animate-pulse"></span>}
             <br />
             <span
               className={`transition-all duration-500 ${
@@ -214,7 +254,7 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Feature Pills - No borders */}
+          {/* Feature Pills - No emojis */}
           <div className={`flex flex-wrap justify-center gap-3 mt-16 transition-all duration-700 delay-700 ${
             showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
@@ -238,31 +278,38 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Platform Logos Infinite Scroll */}
+      {/* Platform Logos Infinite Scroll - No Emojis, Fading Streaks */}
       <section className="relative py-16 overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <p className="text-center text-gray-500 text-sm mb-8 uppercase tracking-wider">Supports 20+ Platforms</p>
-          <div className="relative flex overflow-hidden">
-            {/* Scrolling container */}
+
+          {/* First Scroller - Left to Right */}
+          <div className="relative flex overflow-hidden mb-6">
             <div className="flex animate-scroll-infinite whitespace-nowrap">
-              {/* First set */}
-              {platforms.map((platform, index) => (
+              {[...firstSetPlatforms, ...firstSetPlatforms].map((platform, index) => (
                 <div
                   key={`first-${index}`}
-                  className="inline-flex items-center gap-3 mx-8 px-6 py-3 bg-white/5 rounded-lg backdrop-blur-sm"
+                  className="relative inline-flex items-center mx-6 px-8 py-3 overflow-hidden"
                 >
-                  <span className="text-3xl">{platform.icon}</span>
-                  <span className="text-lg font-medium">{platform.name}</span>
+                  {/* Fading streak background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30 rounded-lg"></div>
+                  <span className="relative text-lg font-medium text-gray-300">{platform}</span>
                 </div>
               ))}
-              {/* Duplicate set for seamless loop */}
-              {platforms.map((platform, index) => (
+            </div>
+          </div>
+
+          {/* Second Scroller - Right to Left */}
+          <div className="relative flex overflow-hidden">
+            <div className="flex animate-scroll-infinite-reverse whitespace-nowrap">
+              {[...secondSetPlatforms, ...secondSetPlatforms].map((platform, index) => (
                 <div
                   key={`second-${index}`}
-                  className="inline-flex items-center gap-3 mx-8 px-6 py-3 bg-white/5 rounded-lg backdrop-blur-sm"
+                  className="relative inline-flex items-center mx-6 px-8 py-3 overflow-hidden"
                 >
-                  <span className="text-3xl">{platform.icon}</span>
-                  <span className="text-lg font-medium">{platform.name}</span>
+                  {/* Fading streak background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30 rounded-lg"></div>
+                  <span className="relative text-lg font-medium text-gray-300">{platform}</span>
                 </div>
               ))}
             </div>
@@ -270,7 +317,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section - No borders */}
+      {/* Features Section - No emojis */}
       <section id="features" className="relative py-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20">
@@ -282,7 +329,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div className="text-center transform transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4">⚡</div>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <Check className="h-8 w-8 text-white" />
+              </div>
               <h3 className="text-2xl font-bold mb-3">Instant Responses</h3>
               <p className="text-gray-400 leading-relaxed">
                 Powered by GPT-4. Your customers get accurate answers in milliseconds, 24/7.
@@ -290,7 +339,9 @@ export default function LandingPage() {
             </div>
 
             <div className="text-center transform transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4">🎯</div>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                <Check className="h-8 w-8 text-white" />
+              </div>
               <h3 className="text-2xl font-bold mb-3">Smart Training</h3>
               <p className="text-gray-400 leading-relaxed">
                 Upload docs, scrape URLs, or paste FAQs. Your bot learns from your knowledge base.
@@ -298,7 +349,9 @@ export default function LandingPage() {
             </div>
 
             <div className="text-center transform transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4">📊</div>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <Check className="h-8 w-8 text-white" />
+              </div>
               <h3 className="text-2xl font-bold mb-3">Live Analytics</h3>
               <p className="text-gray-400 leading-relaxed">
                 Monitor conversations in real-time. Get AI-powered insights to improve performance.
@@ -306,7 +359,9 @@ export default function LandingPage() {
             </div>
 
             <div className="text-center transform transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4">🔗</div>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                <Check className="h-8 w-8 text-white" />
+              </div>
               <h3 className="text-2xl font-bold mb-3">One-Line Embed</h3>
               <p className="text-gray-400 leading-relaxed">
                 Add to any website with a single script tag. Works everywhere, instantly.
@@ -314,7 +369,9 @@ export default function LandingPage() {
             </div>
 
             <div className="text-center transform transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4">💰</div>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-lg flex items-center justify-center">
+                <Check className="h-8 w-8 text-white" />
+              </div>
               <h3 className="text-2xl font-bold mb-3">Cost Optimization</h3>
               <p className="text-gray-400 leading-relaxed">
                 Smart presets reduce API costs by up to 70%. Pay only for what you use.
@@ -322,7 +379,9 @@ export default function LandingPage() {
             </div>
 
             <div className="text-center transform transition-all duration-300 hover:scale-105">
-              <div className="text-4xl mb-4">🎨</div>
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+                <Check className="h-8 w-8 text-white" />
+              </div>
               <h3 className="text-2xl font-bold mb-3">Full Customization</h3>
               <p className="text-gray-400 leading-relaxed">
                 Match your brand perfectly. Customize colors, messages, and personality.
@@ -332,7 +391,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section - No borders */}
+      {/* CTA Section */}
       <section className="relative py-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-5xl sm:text-6xl font-bold mb-8">
@@ -353,7 +412,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer - No borders */}
+      {/* Footer */}
       <footer className="relative py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
@@ -370,7 +429,7 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold mb-3">Product</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link href="#features" className="hover:text-white transition-colors">Features</Link></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
                 <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><Link href="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
               </ul>
@@ -400,7 +459,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Add custom animations in a style tag */}
+      {/* Custom animations */}
       <style jsx>{`
         @keyframes scroll-infinite {
           0% {
@@ -411,11 +470,25 @@ export default function LandingPage() {
           }
         }
 
+        @keyframes scroll-infinite-reverse {
+          0% {
+            transform: translateX(-50%);
+          }
+          100% {
+            transform: translateX(0);
+          }
+        }
+
         .animate-scroll-infinite {
           animation: scroll-infinite 30s linear infinite;
         }
 
-        .animate-scroll-infinite:hover {
+        .animate-scroll-infinite-reverse {
+          animation: scroll-infinite-reverse 30s linear infinite;
+        }
+
+        .animate-scroll-infinite:hover,
+        .animate-scroll-infinite-reverse:hover {
           animation-play-state: paused;
         }
       `}</style>
