@@ -1,5 +1,9 @@
 'use client'
 
+// Force dynamic rendering to prevent static generation
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Zap } from 'lucide-react'
@@ -10,7 +14,6 @@ import { PLAN_FEATURES, type Plan } from '@/lib/plans'
 
 export default function PricingPage() {
   const router = useRouter()
-  const supabase = createBrowserSupabaseClient()
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -20,6 +23,7 @@ export default function PricingPage() {
 
   const fetchCurrentPlan = async () => {
     try {
+      const supabase = createBrowserSupabaseClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
