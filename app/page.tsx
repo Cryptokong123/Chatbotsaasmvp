@@ -7,9 +7,8 @@ import { Bot, Check } from 'lucide-react'
 
 export default function LandingPage() {
   const [typedText, setTypedText] = useState('')
-  const [showDeployInstantly, setShowDeployInstantly] = useState(false)
-  const [showCursor, setShowCursor] = useState(true)
-  const fullText = 'Build AI chatbots and agents.'
+  const [showContent, setShowContent] = useState(false)
+  const fullText = 'Build AI chatbots and agents Instantly.'
 
   useEffect(() => {
     // Add smooth scrolling to the document
@@ -22,7 +21,7 @@ export default function LandingPage() {
         currentIndex++
       } else {
         clearInterval(typingInterval)
-        setTimeout(() => setShowDeployInstantly(true), 300)
+        setTimeout(() => setShowContent(true), 300)
       }
     }, 60)
 
@@ -183,8 +182,8 @@ export default function LandingPage() {
         </svg>
       </div>
 
-      {/* Navigation - Glass Effect */}
-      <nav className="relative bg-black/20 backdrop-blur-md">
+      {/* Navigation - Transparent Glass Effect */}
+      <nav className="relative bg-transparent backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
@@ -223,20 +222,12 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-8 leading-tight">
             {typedText}
-            {showCursor && <span className="inline-block w-1 h-16 bg-white ml-1 animate-pulse"></span>}
-            <br />
-            <span
-              className={`transition-all duration-500 ${
-                showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-            >
-              Deploy instantly.
-            </span>
+            <span className="inline-block w-1 h-16 bg-white ml-1 animate-pulse"></span>
           </h1>
 
           <p
             className={`text-xl sm:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto transition-all duration-700 delay-300 ${
-              showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
           >
             Every customer deserves instant support. Train your bot on your data,
@@ -245,7 +236,7 @@ export default function LandingPage() {
           </p>
 
           <div className={`transition-all duration-700 delay-500 ${
-            showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
             <Link href="/register">
               <Button size="lg" className="bg-white text-black hover:bg-gray-200 text-lg px-10 py-6 rounded-full font-medium">
@@ -256,7 +247,7 @@ export default function LandingPage() {
 
           {/* Feature Pills - No emojis */}
           <div className={`flex flex-wrap justify-center gap-3 mt-16 transition-all duration-700 delay-700 ${
-            showDeployInstantly ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}>
             <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full text-sm backdrop-blur-sm">
               <Check className="h-4 w-4 text-gray-400" />
@@ -292,7 +283,7 @@ export default function LandingPage() {
                   className="relative inline-flex items-center mx-6 px-8 py-3 overflow-hidden"
                 >
                   {/* Fading streak background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30 rounded-lg"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-15 rounded-lg"></div>
                   <span className="relative text-lg font-medium text-gray-300">{platform}</span>
                 </div>
               ))}
@@ -308,7 +299,7 @@ export default function LandingPage() {
                   className="relative inline-flex items-center mx-6 px-8 py-3 overflow-hidden"
                 >
                   {/* Fading streak background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30 rounded-lg"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-15 rounded-lg"></div>
                   <span className="relative text-lg font-medium text-gray-300">{platform}</span>
                 </div>
               ))}
