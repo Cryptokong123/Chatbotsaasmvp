@@ -25,6 +25,14 @@ export interface Bot {
   welcome_message: string
   placeholder_text: string
   is_active: boolean
+
+  // Personality settings
+  tone?: 'professional' | 'friendly' | 'casual' | 'formal' | 'enthusiastic'
+  formality?: 'very_formal' | 'formal' | 'balanced' | 'casual' | 'very_casual'
+  use_emojis?: boolean
+  response_length?: 'concise' | 'balanced' | 'detailed'
+  creativity_level?: number  // 0-1, replaces traditional temperature
+
   created_at: string
   updated_at: string
 }

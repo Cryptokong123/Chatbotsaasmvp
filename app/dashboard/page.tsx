@@ -239,63 +239,63 @@ export default function DashboardPage() {
       {/* Dashboard Stats */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <Card>
+          <Card className="dark:bg-white/5 dark:border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Bots</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalBots}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Bots</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalBots}</p>
                 </div>
                 <Bot className="h-8 w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="dark:bg-white/5 dark:border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Active Bots</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{stats.activeBots}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Bots</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.activeBots}</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="dark:bg-white/5 dark:border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Conversations</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalConversations}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Last 30 days</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Conversations</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalConversations}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 30 days</p>
                 </div>
                 <Users className="h-8 w-8 text-purple-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="dark:bg-white/5 dark:border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Messages</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalMessages}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Last 30 days</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Messages</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalMessages}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 30 days</p>
                 </div>
                 <MessageSquare className="h-8 w-8 text-blue-500" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="dark:bg-white/5 dark:border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Satisfaction</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{stats.avgSatisfaction}%</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Last 30 days</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Satisfaction</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{stats.avgSatisfaction}%</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Last 30 days</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-500" />
               </div>
@@ -313,7 +313,7 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bots.map((bot) => (
-            <Card key={bot.id} className="hover:shadow-lg transition-shadow">
+            <Card key={bot.id} className="hover:shadow-lg transition-shadow dark:bg-white/5 dark:border-white/10">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div
@@ -329,6 +329,7 @@ export default function DashboardPage() {
                       onClick={() => router.push(`/dashboard/bots/${bot.id}`)}
                       aria-label={`Edit ${bot.name} settings`}
                       title="Edit settings"
+                      className="dark:hover:bg-white/10 dark:text-white"
                     >
                       <Settings className="h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -338,6 +339,7 @@ export default function DashboardPage() {
                       onClick={() => handleCloneBot(bot.id, bot.name)}
                       aria-label={`Clone ${bot.name}`}
                       title="Clone bot"
+                      className="dark:hover:bg-white/10"
                     >
                       <Copy className="h-4 w-4 text-blue-500" aria-hidden="true" />
                     </Button>
@@ -347,33 +349,34 @@ export default function DashboardPage() {
                       onClick={() => handleDeleteBot(bot.id, bot.name)}
                       aria-label={`Delete ${bot.name}`}
                       title="Delete bot"
+                      className="dark:hover:bg-white/10"
                     >
                       <Trash2 className="h-4 w-4 text-red-500" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
-                <CardTitle className="mt-4">{bot.name}</CardTitle>
-                <CardDescription>
+                <CardTitle className="mt-4 dark:text-white">{bot.name}</CardTitle>
+                <CardDescription className="dark:text-gray-400">
                   {bot.description || 'No description'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Status</span>
+                    <span className="text-gray-600 dark:text-gray-400">Status</span>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         bot.is_active
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-700'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
                       }`}
                     >
                       {bot.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Created</span>
-                    <span className="text-gray-900">
+                    <span className="text-gray-600 dark:text-gray-400">Created</span>
+                    <span className="text-gray-900 dark:text-white">
                       {formatRelativeTime(bot.created_at)}
                     </span>
                   </div>
@@ -386,6 +389,7 @@ export default function DashboardPage() {
                       onClick={() => router.push(`/dashboard/bots/${bot.id}/preview`)}
                       aria-label={`Preview ${bot.name}`}
                       title="Preview bot"
+                      className="dark:border-white/20 dark:text-white dark:hover:bg-white/10"
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       Preview
@@ -396,7 +400,7 @@ export default function DashboardPage() {
                       onClick={() => handleToggleActive(bot.id, bot.is_active)}
                       aria-label={`Toggle ${bot.name} status`}
                       title={bot.is_active ? 'Deactivate bot' : 'Activate bot'}
-                      className={bot.is_active ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
+                      className={`dark:border-white/20 dark:hover:bg-white/10 ${bot.is_active ? 'text-orange-600 hover:text-orange-700 dark:text-orange-400' : 'text-green-600 hover:text-green-700 dark:text-green-400'}`}
                     >
                       <Power className="h-4 w-4 mr-1" />
                       {bot.is_active ? 'Disable' : 'Enable'}
@@ -406,7 +410,7 @@ export default function DashboardPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="w-full dark:border-white/20 dark:text-white dark:hover:bg-white/10"
                     onClick={() => router.push(`/dashboard/bots/${bot.id}/embed`)}
                   >
                     <Code className="h-4 w-4 mr-2" />
