@@ -480,12 +480,75 @@ export function getBundleSavingsMessage(bundlePlan: BundlePlan): string {
 }
 
 // Export plan arrays for pricing pages
-export const agentPlans = Object.entries(AGENT_PLAN_FEATURES).map(([id, features]) => ({
-  id: id as AgentPlan,
-  ...features,
-}))
+export const agentPlans = Object.entries(AGENT_PLAN_FEATURES).map(([id, features]) => {
+  // Determine which platforms are available
+  const platforms: string[] = []
+  if (features.canUseWhatsApp) platforms.push('whatsapp')
+  if (features.canUseTelegram) platforms.push('telegram')
+  if (features.canUseSlack) platforms.push('slack')
+  if (features.canUseDiscord) platforms.push('discord')
+  if (features.canUseTeams) platforms.push('teams')
+  if (features.canUseFacebookMessenger) platforms.push('messenger')
+  if (features.canUseInstagram) platforms.push('instagram')
+  if (features.canUseTwitter) platforms.push('twitter')
+  if (features.canUseSMS) platforms.push('sms')
+  if (features.canUseVoice) platforms.push('voice')
+  if (features.canUseEmail) platforms.push('email')
 
-export const bundlePlans = Object.entries(BUNDLE_PLAN_FEATURES).map(([id, features]) => ({
-  id: id as BundlePlan,
-  ...features,
-}))
+  return {
+    id: id as AgentPlan,
+    name: features.name,
+    description: id === 'agent_demo' ? 'Try before you buy' :
+                 id === 'agent_starter' ? 'Perfect for small teams' :
+                 id === 'agent_pro' ? 'For growing businesses' :
+                 'Custom solutions for enterprises',
+    price: features.price,
+    limits: {
+      agents: features.maxAgents === -1 ? 999999 : features.maxAgents,
+      messages: features.messagesPerMonth === -1 ? 999999999 : features.messagesPerMonth,
+    },
+    features: {
+      platforms: features.platformIntegrations === -1 ? 'all' as const : platforms,
+      sentiment_analysis: features.canUseSentimentAnalysis,
+      multi_language: features.canUseMultiLanguage,
+      handoff_to_human: features.canUseHandoffToHuman,
+      voice: features.canUseVoice,
+      white_label: features.canUseWhiteLabel,
+      advanced_analytics: features.canUseAdvancedAnalytics,
+      priority_support: features.support === 'priority' || features.support === 'dedicated',
+      sso: features.canUseSSO,
+    },
+  }
+})
+
+export const bundlePlans = Object.entries(BUNDLE_PLAN_FEATURES).map(([id, features]) => {
+  // For bundles, all platforms are typically available
+  const allPlatforms = ['whatsapp', 'telegram', 'slack', 'discord', 'teams', 'messenger', 'instagram', 'twitter', 'sms', 'voice', 'email']
+
+  return {
+    id: id as BundlePlan,
+    name: features.name,
+    description: id === 'bundle_starter' ? 'Chatbots + Agents bundled' :
+                 id === 'bundle_pro' ? 'Full-stack AI solution' :
+                 'Enterprise everything',
+    price: features.price,
+    savings: id === 'bundle_starter' ? Math.round((29 + 49) * features.discount / 100) :
+             id === 'bundle_pro' ? Math.round((99 + 149) * features.discount / 100) :
+             undefined,
+    limits: {
+      agents: features.maxAgents === -1 ? 999999 : features.maxAgents,
+      messages: features.messagesPerMonth === -1 ? 999999999 : features.messagesPerMonth,
+    },
+    features: {
+      platforms: features.platformIntegrations === -1 ? 'all' as const : allPlatforms,
+      sentiment_analysis: true, // Bundles typically have advanced features
+      multi_language: true,
+      handoff_to_human: true,
+      voice: true,
+      white_label: features.removesBranding,
+      advanced_analytics: features.canUseAdvancedAnalytics,
+      priority_support: features.prioritySupport,
+      sso: features.canUseSSO,
+    },
+  }
+})
