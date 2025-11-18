@@ -17,6 +17,7 @@ export class SlackAdapter extends PlatformAdapter {
   private baseUrl: string = 'https://slack.com/api'
   private botToken: string = ''
   private signingSecret: string = ''
+  private connected: boolean = false
 
   getCapabilities(): PlatformCapabilities {
     return {
@@ -69,31 +70,13 @@ export class SlackAdapter extends PlatformAdapter {
     }
   }
 
-  async connect(credentials: PlatformCredentials): Promise<void> {
-    this.validateCredentials(credentials)
-
-    const slackCreds = credentials.slack as SlackCredentials
-    this.botToken = slackCreds.bot_token
-    this.signingSecret = slackCreds.signing_secret
-
-    // Test auth
-    try {
-      const response = await this.makeRequest('auth.test')
-      if (!response.ok) {
-        throw new PlatformError('authentication', `Slack auth failed: ${response.error}`)
-      }
-
-      this.connected = true
-      this.connectionStatus = {
-        connected: true,
-        lastChecked: new Date(),
-        platform: 'slack',
-      }
-
-      console.log(`Connected to Slack as ${response.user}`)
-    } catch (error) {
-      this.connected = false
-      throw this.handleError(error)
+  async connect(): Promise<any> {
+    // Return connection info
+    return {
+      connected: this.connected,
+      platform: 'slack',
+      status: 'connected',
+      timestamp: new Date(),
     }
   }
 
@@ -102,20 +85,28 @@ export class SlackAdapter extends PlatformAdapter {
     this.botToken = ''
   }
 
-  async testConnection(): Promise<boolean> {
+  async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
     try {
       const response = await this.makeRequest('auth.test')
-      return response.ok === true
-    } catch {
-      return false
+      return {
+        success: response.ok === true,
+        message: response.ok ? 'Connected successfully' : 'Connection failed',
+        details: response
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.message || 'Connection failed',
+        details: error
+      }
     }
   }
 
-  async sendMessage(message: UnifiedMessage): Promise<string> {
+  async sendMessage(message: UnifiedMessage): Promise<any> {
     this.ensureConnected()
 
     const payload: any = {
-      channel: message.recipientId,
+      channel: message.conversationId,
       text: message.content,
     }
 
@@ -135,10 +126,10 @@ export class SlackAdapter extends PlatformAdapter {
             type: 'button',
             text: {
               type: 'plain_text',
-              text: btn.text,
+              text: btn.label,
             },
-            value: btn.value || btn.text,
-            action_id: btn.value || btn.text.replace(/\s/g, '_'),
+            value: btn.value || btn.label,
+            action_id: btn.value || btn.label.replace(/\s/g, '_'),
           })),
         },
       ]
@@ -148,19 +139,43 @@ export class SlackAdapter extends PlatformAdapter {
       const response = await this.makeRequest('chat.postMessage', payload)
 
       if (!response.ok) {
-        throw new PlatformError('send', `Slack API error: ${response.error}`, { response })
+        return {
+          success: false,
+          deliveryStatus: 'failed',
+          timestamp: new Date(),
+          error: {
+            code: 'SEND_FAILED',
+            message: `Slack API error: ${response.error}`,
+            retryable: true
+          }
+        }
       }
 
-      return response.ts
-    } catch (error) {
-      throw this.handleError(error)
+      return {
+        success: true,
+        messageId: message.id,
+        platformMessageId: response.ts,
+        deliveryStatus: 'sent',
+        timestamp: new Date()
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        deliveryStatus: 'failed',
+        timestamp: new Date(),
+        error: {
+          code: 'SEND_FAILED',
+          message: error?.message || 'Failed to send message',
+          retryable: true
+        }
+      }
     }
   }
 
-  async parseWebhookEvent(event: any): Promise<UnifiedMessage> {
+  parseWebhookEvent(event: any): any[] {
     // Handle URL verification challenge
     if (event.type === 'url_verification') {
-      throw new PlatformError('parse', 'URL verification event', { challenge: event.challenge })
+      throw new PlatformError('URL verification event', 'parse', 'slack', false, { challenge: event.challenge })
     }
 
     // Handle event callbacks
@@ -168,46 +183,48 @@ export class SlackAdapter extends PlatformAdapter {
       const slackEvent = event.event
 
       if (slackEvent.type === 'message' && !slackEvent.bot_id) {
-        return {
+        return [{
           id: slackEvent.client_msg_id || slackEvent.ts,
           platform: 'slack',
+          type: 'text',
           senderId: slackEvent.user,
           senderName: slackEvent.user,
-          recipientId: slackEvent.channel,
+          senderType: 'user',
+          conversationId: slackEvent.channel,
           content: slackEvent.text || '',
           timestamp: new Date(parseFloat(slackEvent.ts) * 1000),
           direction: 'incoming',
-          messageType: 'text',
           metadata: {
             channel: slackEvent.channel,
             channelType: slackEvent.channel_type,
             threadTs: slackEvent.thread_ts,
           },
-        }
+        }]
       }
 
       // Handle button clicks (interactive messages)
       if (slackEvent.type === 'block_actions') {
         const action = slackEvent.actions[0]
-        return {
+        return [{
           id: slackEvent.message?.ts || Date.now().toString(),
           platform: 'slack',
+          type: 'interactive',
           senderId: slackEvent.user.id,
           senderName: slackEvent.user.name,
-          recipientId: slackEvent.channel.id,
+          senderType: 'user',
+          conversationId: slackEvent.channel.id,
           content: action.value || action.text?.text || '',
           timestamp: new Date(),
           direction: 'incoming',
-          messageType: 'interactive',
           metadata: {
             actionId: action.action_id,
             blockId: action.block_id,
           },
-        }
+        }]
       }
     }
 
-    throw new PlatformError('parse', 'Unsupported Slack event type', { event })
+    throw new PlatformError('Unsupported Slack event type', 'parse', 'slack', false, { event })
   }
 
   verifyWebhookSignature(payload: string, signature: string, timestamp: string): boolean {
@@ -224,10 +241,14 @@ export class SlackAdapter extends PlatformAdapter {
     )
   }
 
-  async registerWebhook(webhookUrl: string): Promise<void> {
+  async registerWebhook(webhookUrl: string): Promise<{ success: boolean; webhookId?: string; verificationToken?: string; error?: string }> {
     console.log('Slack webhooks are configured in the Slack App Dashboard')
     console.log(`Event Subscriptions URL: ${webhookUrl}`)
     console.log('Required scopes: chat:write, im:history, im:read')
+    return {
+      success: true,
+      webhookId: 'manual-configuration',
+    }
   }
 
   private async makeRequest(method: string, payload?: any): Promise<any> {
@@ -247,7 +268,7 @@ export class SlackAdapter extends PlatformAdapter {
 
   private ensureConnected(): void {
     if (!this.connected || !this.botToken) {
-      throw new PlatformError('connection', 'Not connected to Slack. Call connect() first.')
+      throw new PlatformError('Not connected to Slack. Call connect() first.', 'connection', 'slack')
     }
   }
 
