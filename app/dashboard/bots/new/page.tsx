@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Check } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,11 +10,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createBrowserSupabaseClient } from '@/lib/supabase'
 import { useToast } from '@/components/ui/use-toast'
-import { getAllTemplates, type BotTemplate } from '@/lib/bot-templates'
 
 export default function NewBotPage() {
-  const [step, setStep] = useState<'template' | 'customize'>('template')
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [instructions, setInstructions] = useState('You are a helpful assistant. Answer questions based on the provided context.')
@@ -25,18 +22,6 @@ export default function NewBotPage() {
   const router = useRouter()
   const { toast } = useToast()
   const supabase = createBrowserSupabaseClient()
-  const templates = getAllTemplates()
-
-  const handleTemplateSelect = (templateId: string, template: BotTemplate) => {
-    setSelectedTemplate(templateId)
-    setName(template.name)
-    setDescription(template.description || '')
-    setInstructions(template.instructions)
-    setWelcomeMessage(template.welcome_message)
-    setPlaceholderText(template.placeholder_text)
-    setPrimaryColor(template.primary_color)
-    setStep('customize')
-  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +49,7 @@ export default function NewBotPage() {
 
       toast({
         title: 'Success',
-        description: 'Bot created successfully',
+        description: 'Chatbot created successfully! You can now train it with your data.',
       })
 
       router.push(`/dashboard/bots/${data.id}`)
@@ -80,78 +65,37 @@ export default function NewBotPage() {
   }
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-4xl">
       {/* Header */}
       <div className="mb-8">
         <Button
           variant="ghost"
-          onClick={() => {
-            if (step === 'customize') {
-              setStep('template')
-            } else {
-              router.back()
-            }
-          }}
-          className="mb-4"
+          onClick={() => router.back()}
+          className="mb-4 dark:hover:bg-white/10 dark:text-white"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Create New Bot</h1>
-        <p className="text-gray-600 mt-1">
-          {step === 'template' ? 'Choose a template to get started' : 'Customize your bot'}
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create New Chatbot</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Create a simple chatbot that you can train with your own data. Configure its appearance and behavior below.
         </p>
       </div>
 
-      {/* Step 1: Template Selection */}
-      {step === 'template' && (
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map(({ id, template }) => (
-              <Card
-                key={id}
-                className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
-                onClick={() => handleTemplateSelect(id, template)}
-              >
-                <CardHeader>
-                  <div className="text-4xl mb-2">{template.icon || '🤖'}</div>
-                  <CardTitle className="text-lg">{template.name}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {template.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: template.primary_color }}
-                    />
-                    <span className="text-xs text-muted-foreground capitalize">
-                      {template.category || 'General'}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Customize Bot */}
-      {step === 'customize' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Bot Configuration</CardTitle>
-            <CardDescription>
-              Customize your bot's behavior and appearance
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="space-y-6">
+      {/* Bot Configuration Form */}
+      <Card className="dark:bg-white/5 dark:border-white/10">
+        <CardHeader>
+          <CardTitle className="dark:text-white">Chatbot Configuration</CardTitle>
+          <CardDescription className="dark:text-gray-400">
+            Set up your chatbot's basic information and customize how it appears to your users
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreate} className="space-y-6">
             {/* Basic Info */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Bot Name*</Label>
+                <Label htmlFor="name" className="dark:text-gray-300">Bot Name*</Label>
                 <Input
                   id="name"
                   placeholder="e.g., Customer Support Bot"
@@ -159,11 +103,12 @@ export default function NewBotPage() {
                   onChange={(e) => setName(e.target.value)}
                   required
                   disabled={loading}
+                  className="dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-gray-500"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="dark:text-gray-300">Description</Label>
                 <Textarea
                   id="description"
                   placeholder="What does this bot do?"
@@ -171,6 +116,7 @@ export default function NewBotPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={loading}
                   rows={3}
+                  className="dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-gray-500"
                 />
               </div>
             </div>
@@ -178,7 +124,7 @@ export default function NewBotPage() {
             {/* AI Configuration */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="instructions">System Instructions</Label>
+                <Label htmlFor="instructions" className="dark:text-gray-300">System Instructions</Label>
                 <Textarea
                   id="instructions"
                   placeholder="Instructions for the AI..."
@@ -186,31 +132,34 @@ export default function NewBotPage() {
                   onChange={(e) => setInstructions(e.target.value)}
                   disabled={loading}
                   rows={4}
+                  className="dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-gray-500"
                 />
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Define how your bot should behave and respond to users
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="welcomeMessage">Welcome Message</Label>
+                <Label htmlFor="welcomeMessage" className="dark:text-gray-300">Welcome Message</Label>
                 <Input
                   id="welcomeMessage"
                   placeholder="Hi! How can I help you today?"
                   value={welcomeMessage}
                   onChange={(e) => setWelcomeMessage(e.target.value)}
                   disabled={loading}
+                  className="dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-gray-500"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="placeholderText">Input Placeholder</Label>
+                <Label htmlFor="placeholderText" className="dark:text-gray-300">Input Placeholder</Label>
                 <Input
                   id="placeholderText"
                   placeholder="Type your message..."
                   value={placeholderText}
                   onChange={(e) => setPlaceholderText(e.target.value)}
                   disabled={loading}
+                  className="dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-gray-500"
                 />
               </div>
             </div>
@@ -218,7 +167,7 @@ export default function NewBotPage() {
             {/* Appearance */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="primaryColor">Primary Color</Label>
+                <Label htmlFor="primaryColor" className="dark:text-gray-300">Primary Color</Label>
                 <div className="flex items-center space-x-4">
                   <Input
                     id="primaryColor"
@@ -226,7 +175,7 @@ export default function NewBotPage() {
                     value={primaryColor}
                     onChange={(e) => setPrimaryColor(e.target.value)}
                     disabled={loading}
-                    className="w-20 h-10"
+                    className="w-20 h-10 dark:bg-white/10 dark:border-white/20"
                   />
                   <Input
                     type="text"
@@ -234,29 +183,33 @@ export default function NewBotPage() {
                     onChange={(e) => setPrimaryColor(e.target.value)}
                     disabled={loading}
                     placeholder="#6C47FF"
-                    className="flex-1"
+                    className="flex-1 dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder:text-gray-500"
                   />
                 </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  This color will be used for the chatbot widget on your website
+                </p>
               </div>
             </div>
 
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep('template')}
-                  disabled={loading}
-                >
-                  Change Template
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Creating...' : 'Create Bot'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+            {/* Submit */}
+            <div className="flex justify-end space-x-4 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={loading}
+                className="dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading || !name.trim()} className="bg-white text-black hover:bg-gray-200 dark:bg-white dark:text-black">
+                {loading ? 'Creating...' : 'Create Chatbot'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
