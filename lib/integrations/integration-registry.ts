@@ -217,8 +217,9 @@ export class IntegrationRegistry extends EventEmitter {
     metadata: IntegrationMetadata,
     adapterClass: new (config: IntegrationConfig) => BaseIntegrationAdapter
   ): void {
+    // Skip if already registered (idempotent operation for build-time safety)
     if (this.registeredIntegrations.has(metadata.type)) {
-      throw new Error(`Integration ${metadata.type} is already registered`)
+      return
     }
 
     this.registeredIntegrations.set(metadata.type, {
