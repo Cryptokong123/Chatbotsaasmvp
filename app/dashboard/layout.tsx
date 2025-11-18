@@ -73,13 +73,13 @@ export default function DashboardLayout({
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-b dark:from-gray-900 dark:via-black dark:to-gray-950">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+      <aside className="fixed left-0 top-0 h-full w-64 bg-white dark:bg-black/40 dark:backdrop-blur-xl border-r border-gray-200 dark:border-white/10 flex flex-col">
         {/* Logo */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
+        <div className="p-6 border-b border-gray-200 dark:border-white/10">
           <Link href="/dashboard" className="flex items-center space-x-2">
-            <Bot className="h-8 w-8 text-primary" />
+            <Bot className="h-8 w-8 text-gray-900 dark:text-white" />
             <span className="text-xl font-bold text-gray-900 dark:text-white">ChatForge AI</span>
           </Link>
         </div>
@@ -95,8 +95,8 @@ export default function DashboardLayout({
                 href={item.href}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    ? 'bg-white text-black dark:bg-white dark:text-black'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -107,14 +107,14 @@ export default function DashboardLayout({
         </nav>
 
         {/* User section */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <div className="p-4 border-t border-gray-200 dark:border-white/10">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="w-8 h-8 bg-white text-black dark:bg-white dark:text-black rounded-full flex items-center justify-center font-semibold">
                 {user?.email?.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {user?.user_metadata?.full_name || user?.email}
                 </p>
               </div>
@@ -129,6 +129,7 @@ export default function DashboardLayout({
                 size="icon"
                 onClick={handleLogout}
                 title="Sign out"
+                className="dark:hover:bg-white/10 dark:text-white"
               >
                 <LogOut className="h-5 w-5" />
               </Button>

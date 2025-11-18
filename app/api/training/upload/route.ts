@@ -9,61 +9,86 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get('content-type') || ''
 
     // Handle file uploads (multipart/form-data)
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData()
-      const file = formData.get('file') as File
-      const botId = formData.get('botId') as string
-      const autoChunk = formData.get('autoChunk') === 'true'
+    if (contentType.includes('multipart/form-data') || contentType.includes('form-data')) {
+      try {
+        const formData = await request.formData()
+        const file = formData.get('file') as File
+        const botId = formData.get('botId') as string
+        const autoChunk = formData.get('autoChunk') === 'true'
 
-      if (!file) {
+        if (!file) {
+          return NextResponse.json(
+            { error: 'No file provided' },
+            { status: 400 }
+          )
+        }
+
+        if (!botId) {
+          return NextResponse.json(
+            { error: 'Bot ID is required' },
+            { status: 400 }
+          )
+        }
+
+        // Validate file size (10MB limit)
+        const maxSize = 10 * 1024 * 1024
+        if (file.size > maxSize) {
+          return NextResponse.json(
+            { error: 'File size exceeds 10MB limit' },
+            { status: 400 }
+          )
+        }
+
+        // Parse document
+        const parsedDoc = await parseDocument(file)
+
+        // Chunk text if requested
+        const textChunks = autoChunk
+          ? chunkText(parsedDoc.text, 1000)
+          : [parsedDoc.text]
+
+        // Process each chunk through RAG system
+        for (const [index, chunk] of textChunks.entries()) {
+          await processTrainingData(
+            botId,
+            chunk,
+            'document',
+            `${file.name}${textChunks.length > 1 ? ` (chunk ${index + 1}/${textChunks.length})` : ''}`
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'Document processed successfully',
+          metadata: {
+            fileName: file.name,
+            fileType: parsedDoc.metadata.fileType,
+            wordCount: parsedDoc.metadata.wordCount,
+            pages: parsedDoc.metadata.pages,
+            chunksCreated: textChunks.length,
+          },
+        })
+      } catch (formError: any) {
+        console.error('Form data parsing error:', formError)
         return NextResponse.json(
-          { error: 'No file provided' },
+          { error: formError.message || 'Failed to process file upload' },
           { status: 400 }
         )
       }
-
-      // Validate file size (10MB limit)
-      const maxSize = 10 * 1024 * 1024
-      if (file.size > maxSize) {
-        return NextResponse.json(
-          { error: 'File size exceeds 10MB limit' },
-          { status: 400 }
-        )
-      }
-
-      // Parse document
-      const parsedDoc = await parseDocument(file)
-
-      // Chunk text if requested
-      const textChunks = autoChunk
-        ? chunkText(parsedDoc.text, 1000)
-        : [parsedDoc.text]
-
-      // Process each chunk through RAG system
-      for (const [index, chunk] of textChunks.entries()) {
-        await processTrainingData(
-          botId,
-          chunk,
-          'document',
-          `${file.name}${textChunks.length > 1 ? ` (chunk ${index + 1}/${textChunks.length})` : ''}`
-        )
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: 'Document processed successfully',
-        metadata: {
-          fileName: file.name,
-          fileType: parsedDoc.metadata.fileType,
-          wordCount: parsedDoc.metadata.wordCount,
-          pages: parsedDoc.metadata.pages,
-          chunksCreated: textChunks.length,
-        },
-      })
     }
 
     // Handle JSON uploads (existing functionality)
-    const { botId, content, sourceType, sourceName } = await request.json()
+    let requestBody
+    try {
+      requestBody = await request.json()
+    } catch (jsonError) {
+      return NextResponse.json(
+        { error: 'Invalid request format. Expected JSON or multipart/form-data' },
+        { status: 400 }
+      )
+    }
+
+    const { botId, content, sourceType, sourceName } = requestBody
 
     if (!botId || !content) {
       return NextResponse.json(
